@@ -2,496 +2,1192 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Calendar, FileText, CreditCard, Wrench, Building2, CheckCircle2, QrCode, ArrowDownToLine, Users, CheckSquare, Search, Bell } from 'lucide-react';
-import { getCurrentSession, UserSession } from '@/lib/auth';
+import { 
+  Building2, 
+  Home, 
+  FileText, 
+  Receipt, 
+  DollarSign, 
+  ArrowUpRight, 
+  ArrowDownRight, 
+  Wrench, 
+  FolderOpen, 
+  Bell, 
+  BarChart3, 
+  User, 
+  Lock, 
+  CheckCircle2, 
+  AlertCircle, 
+  Clock, 
+  QrCode, 
+  Copy, 
+  Check, 
+  ExternalLink, 
+  Plus, 
+  X, 
+  ShieldCheck, 
+  Send,
+  Eye,
+  LogOut,
+  Calendar
+} from 'lucide-react';
+import { getCurrentSession, logoutUser, UserSession } from '@/lib/auth';
+import { 
+  BuildingUnit, 
+  GestaoContract, 
+  GestaoBoleto, 
+  GestaoPayment, 
+  GestaoMaintenance, 
+  GestaoDocument, 
+  GestaoAnnouncement, 
+  INITIAL_UNITS, 
+  INITIAL_CONTRACTS, 
+  INITIAL_BOLETOS, 
+  INITIAL_PAYMENTS, 
+  INITIAL_MAINTENANCES, 
+  INITIAL_DOCUMENTS, 
+  INITIAL_ANNOUNCEMENTS,
+  getStoredData, 
+  saveStoredData 
+} from '@/lib/gestaoData';
 
-export default function DashboardPage() {
+export default function PortalUnificadoPage() {
   const [session, setSession] = useState<UserSession | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('contracts');
-  const [paidInvoices, setPaidInvoices] = useState<Record<string, boolean>>({});
-  const [announcements, setAnnouncements] = useState<any[]>([]);
+  
+  // Active Persona (Owner vs Tenant)
+  const [portalMode, setPortalMode] = useState<'OWNER' | 'TENANT'>('OWNER');
+  
+  // Active Navigation Tab
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
 
-  const fetchAnnouncements = async () => {
-    try {
-      const s = getCurrentSession();
-      const token = s?.accessToken;
-      const res = await fetch('http://localhost:4000/api/announcements', {
-        headers: {
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        }
-      });
-      if (res.ok) {
-        setAnnouncements(await res.json());
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  // Shared Data
+  const [units, setUnits] = useState<BuildingUnit[]>([]);
+  const [contracts, setContracts] = useState<GestaoContract[]>([]);
+  const [boletos, setBoletos] = useState<GestaoBoleto[]>([]);
+  const [payments, setPayments] = useState<GestaoPayment[]>([]);
+  const [maintenances, setMaintenances] = useState<GestaoMaintenance[]>([]);
+  const [documents, setDocs] = useState<GestaoDocument[]>([]);
+  const [announcements, setAnnouncements] = useState<GestaoAnnouncement[]>([]);
 
-  const handleMarkAsRead = async (id: string) => {
-    try {
-      const s = getCurrentSession();
-      const token = s?.accessToken;
-      if (!s?.user?.id) return;
-      await fetch(`http://localhost:4000/api/announcements/${id}/read`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({ userId: s.user.id })
-      });
-      fetchAnnouncements();
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  // UI helpers
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
+  const [ticketTitle, setTicketTitle] = useState('');
+  const [ticketCategory, setTicketCategory] = useState<'ELETRICA' | 'HIDRAULICA' | 'ESTRUTURAL' | 'PINTURA' | 'OUTROS'>('HIDRAULICA');
+  const [ticketUrgency, setTicketUrgency] = useState<'BAIXA' | 'MEDIA' | 'ALTA' | 'EMERGENCIA'>('ALTA');
+  const [ticketDescription, setTicketDescription] = useState('');
+  
+  // Password change form
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   useEffect(() => {
     const s = getCurrentSession();
     setSession(s);
-    if (s?.user?.role === 'OWNER') {
-      setActiveTab('statements');
+    if (s?.user?.role === 'TENANT') {
+      setPortalMode('TENANT');
     } else {
-      setActiveTab('contracts');
+      setPortalMode('OWNER');
     }
-    fetchAnnouncements();
+
+    setUnits(getStoredData('units', INITIAL_UNITS));
+    setContracts(getStoredData('contracts', INITIAL_CONTRACTS));
+    setBoletos(getStoredData('boletos', INITIAL_BOLETOS));
+    setPayments(getStoredData('payments', INITIAL_PAYMENTS));
+    setMaintenances(getStoredData('maintenances', INITIAL_MAINTENANCES));
+    setDocs(getStoredData('documents', INITIAL_DOCUMENTS));
+    setAnnouncements(getStoredData('announcements', INITIAL_ANNOUNCEMENTS));
   }, []);
 
-  const handlePayInvoice = (id: string) => {
-    setPaidInvoices(prev => ({ ...prev, [id]: true }));
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedCode(text);
+    setTimeout(() => setCopiedCode(null), 2500);
   };
 
-  const userName = session?.user?.name || 'Visitante';
-  const userEmail = session?.user?.email || '';
-  const isOwner = session?.user?.role === 'OWNER';
-  const userRoleStr = isOwner ? 'Proprietário i7' : 'Locatário i7 Verificado';
+  const handleConfirmReadAnnouncement = (annId: string) => {
+    const updated = announcements.map(a => {
+      if (a.id === annId) {
+        const alreadyRead = a.readBy.some(r => r.userId === (session?.user?.id || 'curr-user'));
+        if (!alreadyRead) {
+          return {
+            ...a,
+            readBy: [
+              ...a.readBy,
+              {
+                userId: session?.user?.id || 'curr-user',
+                userName: session?.user?.name || (portalMode === 'OWNER' ? 'Eduardo Silveira Ramos' : 'Lucas Ferreira'),
+                readAt: new Date().toLocaleString('pt-BR')
+              }
+            ]
+          };
+        }
+      }
+      return a;
+    });
 
-  const getUserInitials = (name: string) => {
-    if (!name) return 'i7';
-    const parts = name.trim().split(' ');
-    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    return name.substring(0, 2).toUpperCase();
+    setAnnouncements(updated);
+    saveStoredData('announcements', updated);
+    alert('Leitura confirmada com sucesso! O administrador já foi notificado.');
   };
 
-  if (!session) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="w-12 h-12 border-4 border-brand-lime border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-sm text-text-secondary font-medium">Carregando painel...</p>
-      </div>
-    );
-  }
+  const handleCreateTenantTicket = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ticketTitle) return;
+
+    const newTicket: GestaoMaintenance = {
+      id: `mnt-${Date.now()}`,
+      title: ticketTitle,
+      unitName: 'Apto 204 - Residencial Faria Lima Prime',
+      requestedBy: session?.user?.name || 'Lucas Ferreira',
+      requestedByRole: 'TENANT',
+      category: ticketCategory,
+      urgency: ticketUrgency,
+      status: 'ABERTO',
+      description: ticketDescription,
+      createdAt: new Date().toLocaleDateString('pt-BR'),
+      photos: []
+    };
+
+    const updated = [newTicket, ...maintenances];
+    setMaintenances(updated);
+    saveStoredData('maintenances', updated);
+    setIsNewTicketModalOpen(false);
+    setTicketTitle('');
+    setTicketDescription('');
+    alert('Chamado de manutenção aberto com sucesso! A equipe técnica analisará a solicitação.');
+  };
+
+  const handlePasswordChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      alert('As senhas não coincidem.');
+      return;
+    }
+    setPasswordSuccess(true);
+    setTimeout(() => setPasswordSuccess(false), 3000);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+  };
+
+  const handleLogout = () => {
+    logoutUser();
+    window.location.href = '/login';
+  };
+
+  // Filtered views based on mode
+  // Owner view: properties owned by Eduardo Silveira Ramos or Mariana Castro
+  const ownerUnits = units.filter(u => u.ownerName.includes('Eduardo') || u.ownerName.includes('Mariana'));
+  const ownerBoletos = boletos;
+  const ownerPayments = payments.filter(p => p.ownerName.includes('Eduardo') || p.ownerName.includes('Mariana'));
+  const ownerMaintenances = maintenances;
+  const ownerDocuments = documents.filter(d => d.targetRole === 'TODOS' || d.targetRole === 'PROPRIETARIO');
+
+  // Tenant view: Lucas Ferreira (Apto 204)
+  const tenantContract = contracts.find(c => c.tenantName.includes('Lucas')) || contracts[0];
+  const tenantOpenBoletos = boletos.filter(b => b.tenantName.includes('Lucas') && (b.status === 'EM_ABERTO' || b.status === 'VENCIDO'));
+  const tenantPaidBoletos = boletos.filter(b => b.tenantName.includes('Lucas') && b.status === 'PAGO');
+  const tenantMaintenances = maintenances.filter(m => m.requestedBy.includes('Lucas'));
+  const tenantDocuments = documents.filter(d => d.targetRole === 'TODOS' || d.targetRole === 'INQUILINO');
+
+  // Tab definitions per persona (matching diagram exactly)
+  const OWNER_TABS = [
+    { key: 'dashboard', label: 'Dashboard', icon: Home },
+    { key: 'propriedades', label: 'Propriedades', icon: Building2 },
+    { key: 'contratos', label: 'Contratos', icon: FileText },
+    { key: 'boletos', label: 'Boletos', icon: Receipt },
+    { key: 'pagamentos', label: 'Extrato & Despesas', icon: DollarSign },
+    { key: 'repasses', label: 'Repasses', icon: ArrowUpRight },
+    { key: 'manutencoes', label: 'Manutenções', icon: Wrench },
+    { key: 'documentos', label: 'Documentos', icon: FolderOpen },
+    { key: 'comunicados', label: 'Comunicados', icon: Bell },
+    { key: 'relatorios', label: 'Relatórios', icon: BarChart3 },
+    { key: 'perfil', label: 'Perfil', icon: User },
+  ];
+
+  const TENANT_TABS = [
+    { key: 'dashboard', label: 'Dashboard', icon: Home },
+    { key: 'contrato', label: 'Meu Contrato', icon: FileText },
+    { key: 'boletos', label: 'Boletos em Aberto', icon: Receipt },
+    { key: 'pagamentos', label: 'Histórico de Pagos', icon: CheckCircle2 },
+    { key: 'manutencoes', label: 'Manutenções & Chamados', icon: Wrench },
+    { key: 'documentos', label: 'Documentos', icon: FolderOpen },
+    { key: 'comunicados', label: 'Comunicados', icon: Bell },
+    { key: 'perfil', label: 'Perfil', icon: User },
+  ];
+
+  const currentTabs = portalMode === 'OWNER' ? OWNER_TABS : TENANT_TABS;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div className="min-h-screen bg-surface/50 pb-20">
       
-      {/* Dashboard Top Header Dynamic */}
-      <div className="p-8 rounded-2xl bg-white border border-border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-brand-lime/10 border border-brand-lime/20 flex items-center justify-center font-bold text-2xl text-brand-lime">
-            {getUserInitials(userName)}
+      {/* Top Demo Mode Switcher Bar */}
+      <div className="bg-text-primary text-white text-xs px-4 py-2.5 shadow-md">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-text-secondary">Visão do Portal:</span>
+            <div className="inline-flex rounded-xl p-1 bg-white/10 border border-white/20">
+              <button
+                onClick={() => { setPortalMode('OWNER'); setActiveTab('dashboard'); }}
+                className={`px-3 py-1 rounded-lg font-black text-xs transition-all flex items-center gap-1.5 ${
+                  portalMode === 'OWNER' ? 'bg-brand-lime text-background shadow' : 'text-white/80 hover:text-white'
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" /> Portal do Proprietário (Somente Leitura)
+              </button>
+              <button
+                onClick={() => { setPortalMode('TENANT'); setActiveTab('dashboard'); }}
+                className={`px-3 py-1 rounded-lg font-black text-xs transition-all flex items-center gap-1.5 ${
+                  portalMode === 'TENANT' ? 'bg-brand-lime text-background shadow' : 'text-white/80 hover:text-white'
+                }`}
+              >
+                <Home className="w-3.5 h-3.5" /> Portal do Inquilino (Leitura + Chamados)
+              </button>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-extrabold text-text-primary">{userName}</h1>
-            <p className="text-xs text-text-secondary mt-0.5 flex items-center gap-2">
-              <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider text-[10px] ${isOwner ? 'bg-brand-lime/20 text-brand-lime' : 'bg-brand-lime/10 text-brand-lime'}`}>
-                {userRoleStr}
-              </span>
-              <span>• {userEmail}</span>
-            </p>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          {isOwner ? (
-            <Link href="/vender" className="px-5 py-3 rounded-xl text-sm font-bold bg-brand-lime text-white hover:bg-brand-lime-hover transition-colors flex items-center gap-2 shadow-md">
-              <Building2 className="w-4 h-4" /> Anunciar Novo Imóvel
+          <div className="flex items-center gap-4 text-xs font-bold text-white/80">
+            <Link href="/painel" className="hover:text-brand-lime transition-colors flex items-center gap-1">
+              <span>Painel Admin (/painel)</span>
             </Link>
-          ) : (
-            <Link href="/imoveis" className="px-5 py-3 rounded-xl text-sm font-bold bg-surface-hover border border-border text-text-primary hover:border-brand-lime flex items-center gap-2 transition-colors">
-              <Search className="w-4 h-4 text-brand-lime" /> Buscar Novo Imóvel
-            </Link>
-          )}
+            <button onClick={handleLogout} className="hover:text-red-400 transition-colors flex items-center gap-1">
+              <LogOut className="w-3.5 h-3.5" /> Sair
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Tabs Navigation */}
-      <div className="flex overflow-x-auto gap-2 border-b border-border pb-3 text-sm font-semibold">
-        {!isOwner && (
-          <>
-            <button 
-              onClick={() => setActiveTab('contracts')}
-              className={`px-4 py-2.5 rounded-xl border flex items-center gap-2 transition-all ${
-                activeTab === 'contracts' ? 'bg-brand-lime text-white border-brand-lime shadow-md' : 'bg-surface-hover border-border text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              <FileText className="w-4 h-4" /> Meus Contratos
-            </button>
-            <button 
-              onClick={() => setActiveTab('payments')}
-              className={`px-4 py-2.5 rounded-xl border flex items-center gap-2 transition-all ${
-                activeTab === 'payments' ? 'bg-brand-lime text-white border-brand-lime shadow-md' : 'bg-surface-hover border-border text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              <CreditCard className="w-4 h-4" /> Boletos & Pagamentos
-            </button>
-            <button 
-              onClick={() => setActiveTab('visits')}
-              className={`px-4 py-2.5 rounded-xl border flex items-center gap-2 transition-all ${
-                activeTab === 'visits' ? 'bg-brand-lime text-white border-brand-lime shadow-md' : 'bg-surface-hover border-border text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              <Calendar className="w-4 h-4" /> Minhas Visitas
-            </button>
-            <button 
-              onClick={() => setActiveTab('maintenance')}
-              className={`px-4 py-2.5 rounded-xl border flex items-center gap-2 transition-all ${
-                activeTab === 'maintenance' ? 'bg-brand-lime text-white border-brand-lime shadow-md' : 'bg-surface-hover border-border text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              <Wrench className="w-4 h-4" /> Chamados
-            </button>
-            <button 
-              onClick={() => setActiveTab('announcements')}
-              className={`px-4 py-2.5 rounded-xl border flex items-center gap-2 transition-all ${
-                activeTab === 'announcements' ? 'bg-brand-lime text-white border-brand-lime shadow-md' : 'bg-surface-hover border-border text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              <Bell className="w-4 h-4" /> Comunicados
-            </button>
-          </>
-        )}
-
-        {isOwner && (
-          <>
-            <button 
-              onClick={() => setActiveTab('statements')}
-              className={`px-4 py-2.5 rounded-xl border flex items-center gap-2 transition-all ${
-                activeTab === 'statements' ? 'bg-brand-lime text-white border-brand-lime shadow-md' : 'bg-surface-hover border-border text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              <ArrowDownToLine className="w-4 h-4" /> Extrato de Repasses
-            </button>
-            <button 
-              onClick={() => setActiveTab('my_properties')}
-              className={`px-4 py-2.5 rounded-xl border flex items-center gap-2 transition-all ${
-                activeTab === 'my_properties' ? 'bg-brand-lime text-white border-brand-lime shadow-md' : 'bg-surface-hover border-border text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              <Building2 className="w-4 h-4" /> Meus Imóveis
-            </button>
-            <button 
-              onClick={() => setActiveTab('owner_visits')}
-              className={`px-4 py-2.5 rounded-xl border flex items-center gap-2 transition-all ${
-                activeTab === 'owner_visits' ? 'bg-brand-lime text-white border-brand-lime shadow-md' : 'bg-surface-hover border-border text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              <Users className="w-4 h-4" /> Visitas Agendadas
-            </button>
-            <button 
-              onClick={() => setActiveTab('approvals')}
-              className={`px-4 py-2.5 rounded-xl border flex items-center gap-2 transition-all ${
-                activeTab === 'approvals' ? 'bg-brand-lime text-white border-brand-lime shadow-md' : 'bg-surface-hover border-border text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              <CheckSquare className="w-4 h-4" /> Aprovações
-            </button>
-            <button 
-              onClick={() => setActiveTab('announcements')}
-              className={`px-4 py-2.5 rounded-xl border flex items-center gap-2 transition-all ${
-                activeTab === 'announcements' ? 'bg-brand-lime text-white border-brand-lime shadow-md' : 'bg-surface-hover border-border text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              <Bell className="w-4 h-4" /> Comunicados
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* ===================== TAB CONTENTS FOR TENANTS ===================== */}
-      {activeTab === 'contracts' && !isOwner && (
-        <div className="space-y-6">
-          <div className="p-6 rounded-2xl bg-white border border-border shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="space-y-2">
+      {/* Main Container */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        {/* Portal Header */}
+        <div className="p-8 rounded-2xl bg-white border border-border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-surface border border-brand-lime/40 flex items-center justify-center font-black text-xl text-brand-lime shadow-glow-lime">
+              i7
+            </div>
+            <div>
               <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-brand-lime text-white">Contrato Ativo</span>
-                <span className="text-[11px] font-mono text-text-muted">ID: #CT-2026-8812</span>
-              </div>
-              <h3 className="text-xl font-bold text-text-primary">Studio High-Tech em Pinheiros com Varanda</h3>
-              <p className="text-sm text-text-secondary">Rua dos Pinheiros, 850 — Apto 1204, Pinheiros, São Paulo</p>
-              <div className="text-xs font-semibold text-text-muted pt-2 bg-surface-hover inline-block px-3 py-1.5 rounded-lg mt-2">Vigência: 01/03/2026 a 28/02/2027 • Valor Mensal: R$ 4.934,00</div>
-            </div>
-
-            <div className="flex flex-col gap-2 w-full md:w-auto">
-              <button className="px-5 py-2.5 rounded-xl font-bold bg-surface-hover border border-border text-xs text-text-primary hover:border-brand-lime hover:text-brand-lime transition-colors">
-                Baixar Contrato Assinado (PDF)
-              </button>
-              <button onClick={() => setActiveTab('maintenance')} className="px-5 py-2.5 rounded-xl font-bold bg-brand-lime text-white text-xs hover:bg-brand-lime-hover transition-colors shadow-md">
-                Abrir Chamado de Reparo
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'payments' && !isOwner && (
-        <div className="space-y-4">
-          <div className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
-            <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-brand-lime" /> Boletos de Aluguel
-            </h3>
-
-            <div className="divide-y divide-border">
-              
-              {/* Invoice Item 1 */}
-              <div className="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <div className="text-sm font-bold text-text-primary">Mensalidade Agosto/2026</div>
-                  <div className="text-xs font-medium text-text-secondary mt-1">Vencimento: 10/08/2026 • Valor: <span className="font-bold text-brand-lime">R$ 4.934,00</span></div>
-                </div>
-
-                {paidInvoices['inv-1'] ? (
-                  <span className="px-4 py-2 rounded-xl text-xs font-bold bg-green-50 text-green-600 border border-green-200 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4" /> Pago via PIX
-                  </span>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={() => handlePayInvoice('inv-1')}
-                      className="px-5 py-2.5 rounded-xl text-xs font-bold bg-brand-lime text-white flex items-center gap-2 hover:bg-brand-lime-hover transition-colors shadow-md"
-                    >
-                      <QrCode className="w-4 h-4" /> Copiar Código PIX
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Invoice Item 2 */}
-              <div className="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <div className="text-sm font-bold text-text-primary">Mensalidade Julho/2026</div>
-                  <div className="text-xs font-medium text-text-muted mt-1">Pago em: 08/07/2026 • Valor: R$ 4.934,00</div>
-                </div>
-                <span className="px-4 py-2 rounded-xl text-xs font-bold bg-green-50 text-green-600 border border-green-200 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4" /> Pago
+                <h1 className="text-2xl font-black text-text-primary">
+                  {portalMode === 'OWNER' ? 'Portal do Proprietário' : 'Portal do Inquilino'}
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-brand-lime/15 text-brand-lime border border-brand-lime/30">
+                  {portalMode === 'OWNER' ? 'Somente Leitura' : 'Leitura + Chamados'}
                 </span>
               </div>
+              <p className="text-xs text-text-secondary mt-1">
+                {portalMode === 'OWNER' 
+                  ? 'Acompanhe ocupação, contratos, boletos, repasses líquidos por competência e relatórios.' 
+                  : 'Consulte seu contrato, emita a 2ª via de boletos com PIX, abra chamados com fotos e leia comunicados.'}
+              </p>
+            </div>
+          </div>
 
+          <div className="text-right text-xs">
+            <div className="font-bold text-text-primary">
+              {portalMode === 'OWNER' ? 'Eduardo Silveira Ramos' : 'Lucas Ferreira'}
+            </div>
+            <div className="text-text-secondary text-[11px]">
+              {portalMode === 'OWNER' ? 'eduardo.silveira@email.com' : 'lucas.ferreira@gmail.com'}
             </div>
           </div>
         </div>
-      )}
 
-      {activeTab === 'visits' && !isOwner && (
-        <div className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
-          <h3 className="text-base font-bold text-text-primary">Visitas Agendadas</h3>
-          <div className="p-4 rounded-xl bg-surface-hover border border-border flex items-center justify-between">
-            <div>
-              <div className="text-sm font-bold text-text-primary">Apartamento de Luxo 3 Dorms no Itaim Bibi</div>
-              <div className="text-xs text-text-secondary mt-1">Data: 02/08/2026 às 14:30 • Tipo: Presencial</div>
-            </div>
-            <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-brand-lime/10 text-brand-lime border border-brand-lime/20">
-              Confirmada
-            </span>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'maintenance' && !isOwner && (
-        <div className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-text-primary">Chamados de Manutenção</h3>
-            <button className="px-4 py-2 rounded-xl text-xs font-bold bg-brand-lime text-white shadow-md hover:bg-brand-lime-hover transition-colors">
-              + Abrir Chamado
-            </button>
-          </div>
-          <div className="p-4 rounded-xl bg-surface-hover border border-border flex items-center justify-between">
-            <div>
-              <div className="text-sm font-bold text-text-primary">Manutenção de Ar-Condicionado Split</div>
-              <div className="text-xs text-text-secondary mt-1">Aberto em 20/07/2026 • Em Atendimento pela Equipe i7</div>
-            </div>
-            <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-yellow-50 text-yellow-600 border border-yellow-200">
-              Em Andamento
-            </span>
-          </div>
-        </div>
-      )}
-
-
-      {/* ===================== TAB CONTENTS FOR OWNERS ===================== */}
-      {activeTab === 'statements' && isOwner && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-6 rounded-2xl bg-brand-lime text-white shadow-lg space-y-2">
-              <div className="text-sm font-bold opacity-90 uppercase tracking-wider">A Receber este mês</div>
-              <div className="text-3xl font-black">R$ 14.850,00</div>
-              <div className="text-xs font-medium opacity-80 pt-2 border-t border-white/20">Próximo repasse: 12/08/2026</div>
-            </div>
-            <div className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-2">
-              <div className="text-sm font-bold text-text-secondary uppercase tracking-wider">Recebido no ano</div>
-              <div className="text-3xl font-black text-text-primary">R$ 89.100,00</div>
-              <div className="text-xs font-medium text-brand-lime pt-2 border-t border-border mt-2">+12% vs ano anterior</div>
-            </div>
-            <div className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-2 flex flex-col justify-center">
-              <button className="w-full py-3 rounded-xl font-bold bg-surface-hover border border-border text-text-primary hover:border-brand-lime hover:text-brand-lime transition-all text-sm">
-                Baixar Informe de Rendimentos (IR)
+        {/* Navigation Tabs Header */}
+        <div className="bg-white rounded-2xl border border-border p-2 shadow-sm flex items-center gap-1.5 overflow-x-auto">
+          {currentTabs.map(tab => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all ${
+                  isActive 
+                    ? 'bg-brand-lime text-white shadow-sm' 
+                    : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{tab.label}</span>
               </button>
-            </div>
-          </div>
-
-          <div className="p-6 rounded-2xl bg-white border border-border shadow-sm mt-6">
-            <h3 className="text-base font-bold text-text-primary border-b border-border pb-4 mb-4">Últimos Repasses</h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-4 bg-surface-hover rounded-xl border border-border">
-                <div>
-                  <div className="font-bold text-text-primary text-sm">Repasse - Julho/2026</div>
-                  <div className="text-xs text-text-secondary mt-1">Referente a 3 contratos ativos</div>
-                </div>
-                <div className="text-right">
-                  <div className="font-bold text-brand-lime">R$ 14.850,00</div>
-                  <div className="text-xs text-text-muted mt-0.5">Transferido em 12/07/2026</div>
-                </div>
-              </div>
-              <div className="flex justify-between items-center p-4 bg-surface-hover rounded-xl border border-border">
-                <div>
-                  <div className="font-bold text-text-primary text-sm">Repasse - Junho/2026</div>
-                  <div className="text-xs text-text-secondary mt-1">Referente a 3 contratos ativos</div>
-                </div>
-                <div className="text-right">
-                  <div className="font-bold text-brand-lime">R$ 14.850,00</div>
-                  <div className="text-xs text-text-muted mt-0.5">Transferido em 12/06/2026</div>
-                </div>
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
-      )}
 
-      {activeTab === 'my_properties' && isOwner && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-text-primary">Meus Imóveis na i7</h3>
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Property 1 */}
-            <div className="rounded-2xl bg-white border border-border shadow-sm flex overflow-hidden">
-              <div className="w-1/3 bg-surface-hover relative">
-                <img src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400" className="w-full h-full object-cover" alt="Imóvel" />
-              </div>
-              <div className="p-5 w-2/3 space-y-3">
-                <div className="flex justify-between items-start">
-                  <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-brand-lime/10 text-brand-lime border border-brand-lime/20">Alugado</span>
-                </div>
-                <div>
-                  <h4 className="font-bold text-text-primary text-sm">Apto 3 Dorms - Itaim Bibi</h4>
-                  <p className="text-xs text-text-secondary mt-1">Rua Jesuíno Arruda, 100</p>
-                </div>
-                <div className="text-xs font-bold text-text-primary pt-2 border-t border-border">
-                  Repasse mensal: <span className="text-brand-lime">R$ 6.500,00</span>
-                </div>
-              </div>
-            </div>
+        {/* ==================================================================== */}
+        {/* ======================= ABA: DASHBOARD ============================= */}
+        {/* ==================================================================== */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-6">
+            {portalMode === 'OWNER' ? (
+              // Owner Dashboard
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                  <div className="p-6 rounded-2xl bg-white border border-border shadow-sm">
+                    <div className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Ocupação das Propriedades</div>
+                    <div className="text-2xl font-black text-emerald-600">100%</div>
+                    <div className="text-[11px] text-text-secondary mt-1">2 de 2 salas/unidades locadas</div>
+                  </div>
 
-            {/* Property 2 */}
-            <div className="rounded-2xl bg-white border border-border shadow-sm flex overflow-hidden">
-              <div className="w-1/3 bg-surface-hover relative">
-                <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400" className="w-full h-full object-cover grayscale opacity-80" alt="Imóvel" />
-              </div>
-              <div className="p-5 w-2/3 space-y-3">
-                <div className="flex justify-between items-start">
-                  <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-yellow-50 text-yellow-600 border border-yellow-200">Disponível / Anunciado</span>
-                </div>
-                <div>
-                  <h4 className="font-bold text-text-primary text-sm">Casa Térrea - Alto de Pinheiros</h4>
-                  <p className="text-xs text-text-secondary mt-1">Praça Panamericana, 50</p>
-                </div>
-                <div className="text-xs font-bold text-text-primary pt-2 border-t border-border">
-                  Valor Anunciado: <span className="text-brand-lime">R$ 8.350,00</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+                  <div className="p-6 rounded-2xl bg-white border border-border shadow-sm">
+                    <div className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Boletos Vencidos por Inquilinos</div>
+                    <div className="text-2xl font-black text-red-600">1 pendente</div>
+                    <div className="text-[11px] text-text-secondary mt-1">Régua de cobrança automática ativa</div>
+                  </div>
 
-      {activeTab === 'owner_visits' && isOwner && (
-        <div className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
-          <h3 className="text-base font-bold text-text-primary">Visitas Agendadas nos seus Imóveis</h3>
-          <p className="text-sm text-text-secondary pb-2 border-b border-border">
-            Corretores da i7 estão com chaves/senhas e acompanharão os clientes. Você não precisa fazer nada.
-          </p>
-          <div className="p-4 rounded-xl bg-surface-hover border border-border flex items-center justify-between">
-            <div>
-              <div className="text-sm font-bold text-text-primary">Casa Térrea - Alto de Pinheiros</div>
-              <div className="text-xs text-text-secondary mt-1">Data: 04/08/2026 às 10:00 • Corretor Parceiro: Marcos T.</div>
-            </div>
-            <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-brand-lime/10 text-brand-lime border border-brand-lime/20">
-              Confirmada
-            </span>
-          </div>
-        </div>
-      )}
+                  <div className="p-6 rounded-2xl bg-white border border-border shadow-sm">
+                    <div className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Chamados em Aberto</div>
+                    <div className="text-2xl font-black text-purple-600">1 chamado</div>
+                    <div className="text-[11px] text-text-secondary mt-1">Orçamento aprovado para execução</div>
+                  </div>
+                </div>
 
-      {activeTab === 'approvals' && isOwner && (
-        <div className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
-          <h3 className="text-base font-bold text-text-primary">Aprovações Pendentes</h3>
-          <div className="p-5 rounded-xl bg-surface-hover border border-red-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <div className="text-sm font-bold text-text-primary">Aprovar Orçamento: Troca de Resistência (Chuveiro)</div>
-              <div className="text-xs text-text-secondary mt-1">Imóvel: Apto 3 Dorms - Itaim Bibi</div>
-              <div className="text-sm font-bold text-red-600 mt-2">Valor: R$ 150,00 (Será descontado do próximo repasse)</div>
-            </div>
-            <div className="flex gap-2">
-              <button className="px-4 py-2 rounded-xl text-xs font-bold bg-white border border-border text-text-primary hover:bg-gray-50 transition-colors">
-                Recusar
-              </button>
-              <button className="px-4 py-2 rounded-xl text-xs font-bold bg-brand-lime text-white shadow-md hover:bg-brand-lime-hover transition-colors">
-                Aprovar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'announcements' && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-bold text-text-primary">Mural de Comunicados</h3>
-          {announcements.filter(a => a.target === 'ALL' || a.target === session?.user?.role).length === 0 ? (
-            <div className="p-10 text-center rounded-2xl border-2 border-dashed border-border bg-surface-hover text-text-muted">
-              Nenhum comunicado no momento.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {announcements
-                .filter(a => a.target === 'ALL' || a.target === session?.user?.role)
-                .map(announcement => (
-                  <div key={announcement.id} className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
+                {/* Owner Recent Overview */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-brand-lime/10 text-brand-lime border border-brand-lime/20">
-                          {announcement.target === 'ALL' ? 'Geral' : announcement.target === 'OWNER' ? 'Proprietários' : 'Inquilinos'}
-                        </span>
-                        <span className="text-xs text-text-muted font-mono">{new Date(announcement.createdAt).toLocaleDateString('pt-BR')}</span>
-                      </div>
+                      <h3 className="font-bold text-sm text-text-primary flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-brand-lime" /> Minhas Propriedades
+                      </h3>
+                      <button onClick={() => setActiveTab('propriedades')} className="text-xs font-bold text-brand-lime hover:underline">
+                        Ver detalhes
+                      </button>
                     </div>
-                    <div>
-                      <h4 className="font-bold text-text-primary text-base">{announcement.title}</h4>
-                      <p className="text-sm text-text-secondary mt-2 whitespace-pre-line">{announcement.content}</p>
+
+                    <div className="space-y-3">
+                      {ownerUnits.map(u => (
+                        <div key={u.id} className="p-3.5 rounded-xl bg-surface border border-border flex items-center justify-between">
+                          <div>
+                            <div className="font-bold text-xs text-text-primary">{u.buildingName} - {u.unitNumber}</div>
+                            <div className="text-[11px] text-text-secondary mt-0.5">Locatário: {u.tenantName}</div>
+                          </div>
+                          <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-100 text-emerald-700">
+                            {u.status}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                    <div className="pt-4 border-t border-border flex justify-end">
-                      <button 
-                        onClick={() => handleMarkAsRead(announcement.id)}
-                        className="px-5 py-2 rounded-xl text-xs font-bold bg-surface-hover border border-border text-text-primary hover:border-brand-lime hover:text-brand-lime transition-colors flex items-center gap-2"
+                  </div>
+
+                  <div className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-sm text-text-primary flex items-center gap-2">
+                        <ArrowUpRight className="w-4 h-4 text-brand-lime" /> Últimos Repasses Recebidos
+                      </h3>
+                      <button onClick={() => setActiveTab('repasses')} className="text-xs font-bold text-brand-lime hover:underline">
+                        Ver histórico
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {ownerPayments.map(p => (
+                        <div key={p.id} className="p-3.5 rounded-xl bg-surface border border-border flex items-center justify-between">
+                          <div>
+                            <div className="font-bold text-xs text-text-primary">Competência {p.competence}</div>
+                            <div className="text-[11px] text-text-secondary mt-0.5">{p.unitName}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-black text-xs text-blue-600">
+                              R$ {p.transferredAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </div>
+                            <span className="text-[10px] text-text-muted">
+                              {p.transferDate ? `Pago em ${p.transferDate}` : 'Aguardando'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              // Tenant Dashboard
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                  <div className="p-6 rounded-2xl bg-white border border-border shadow-sm">
+                    <div className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Boleto Atual em Aberto</div>
+                    <div className="text-2xl font-black text-red-600">
+                      R$ {tenantOpenBoletos[0]?.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
+                    </div>
+                    <div className="text-[11px] text-text-secondary mt-1">
+                      Vence em: {tenantOpenBoletos[0]?.dueDate || 'Sem débitos pendentes'}
+                    </div>
+                  </div>
+
+                  <div className="p-6 rounded-2xl bg-white border border-border shadow-sm">
+                    <div className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Meus Chamados Ativos</div>
+                    <div className="text-2xl font-black text-purple-600">
+                      {tenantMaintenances.filter(m => m.status !== 'CONCLUIDO').length} chamado(s)
+                    </div>
+                    <div className="text-[11px] text-text-secondary mt-1">Em atendimento com técnico</div>
+                  </div>
+
+                  <div className="p-6 rounded-2xl bg-white border border-border shadow-sm">
+                    <div className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Avisos do Prédio</div>
+                    <div className="text-2xl font-black text-brand-lime">
+                      {announcements.length} comunicados
+                    </div>
+                    <div className="text-[11px] text-text-secondary mt-1">Mural atualizado da administração</div>
+                  </div>
+                </div>
+
+                {/* Quick Pay Box */}
+                {tenantOpenBoletos.length > 0 && (
+                  <div className="p-6 rounded-2xl bg-brand-lime/10 border border-brand-lime/30 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="space-y-1 text-center md:text-left">
+                      <span className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase bg-brand-lime text-background">
+                        Pagamento Rápido PIX
+                      </span>
+                      <h3 className="text-base font-black text-text-primary">
+                        Boleto do mês ({tenantOpenBoletos[0].dueDate}) disponível
+                      </h3>
+                      <p className="text-xs text-text-secondary">
+                        Copie a chave PIX Copia e Cola ou pague diretamente pelo seu banco.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => handleCopy(tenantOpenBoletos[0].pixCode)}
+                        className="px-4 py-2.5 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow flex items-center gap-2 transition-all"
                       >
-                        <CheckCircle2 className="w-4 h-4" /> Marcar como Lido
+                        {copiedCode === tenantOpenBoletos[0].pixCode ? <Check className="w-4 h-4" /> : <QrCode className="w-4 h-4" />}
+                        <span>{copiedCode === tenantOpenBoletos[0].pixCode ? 'PIX Copiado!' : 'Copiar Chave PIX'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleCopy(tenantOpenBoletos[0].barCode)}
+                        className="px-4 py-2.5 rounded-xl bg-white border border-border text-text-primary text-xs font-bold hover:border-brand-lime flex items-center gap-2 transition-all"
+                      >
+                        {copiedCode === tenantOpenBoletos[0].barCode ? <Check className="w-4 h-4 text-brand-lime" /> : <Copy className="w-4 h-4" />}
+                        <span>Copiar Código de Barras</span>
                       </button>
                     </div>
                   </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ==================================================================== */}
+        {/* ======================= ABA: PROPRIEDADES ========================== */}
+        {/* ==================================================================== */}
+        {activeTab === 'propriedades' && (
+          <div className="space-y-6">
+            <h2 className="text-base font-black text-text-primary">
+              Prédios e Salas sob sua Titularidade
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {ownerUnits.map(unit => (
+                <div key={unit.id} className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-brand-lime">{unit.type} • {unit.floor}</span>
+                      <h3 className="text-lg font-black text-text-primary mt-0.5">{unit.unitNumber}</h3>
+                      <p className="text-xs text-text-secondary">{unit.buildingName}</p>
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-700">
+                      {unit.status}
+                    </span>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-surface border border-border space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary">Inquilino Atual:</span>
+                      <span className="font-bold text-text-primary">{unit.tenantName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary">Aluguel Contratual:</span>
+                      <span className="font-bold text-text-primary">R$ {unit.rentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary">Condomínio + IPTU:</span>
+                      <span className="font-bold text-text-primary">R$ {(unit.condoValue + unit.iptuValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
-          )}
+          </div>
+        )}
+
+        {/* ==================================================================== */}
+        {/* ======================= ABA: CONTRATOS ============================= */}
+        {/* ==================================================================== */}
+        {(activeTab === 'contratos' || activeTab === 'contrato') && (
+          <div className="space-y-6">
+            <h2 className="text-base font-black text-text-primary">
+              {portalMode === 'OWNER' ? 'Locações Ativas e Encerradas das suas Unidades' : 'Ficha do Meu Contrato de Locação'}
+            </h2>
+
+            {portalMode === 'OWNER' ? (
+              <div className="bg-white rounded-2xl border border-border shadow-sm overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-surface border-b border-border text-text-secondary font-bold uppercase tracking-wider text-[10px]">
+                    <tr>
+                      <th className="p-4">Contrato</th>
+                      <th className="p-4">Unidade</th>
+                      <th className="p-4">Locatário</th>
+                      <th className="p-4">Vigência</th>
+                      <th className="p-4">Valor Mensal</th>
+                      <th className="p-4">Reajuste / Garantia</th>
+                      <th className="p-4">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {contracts.map(c => (
+                      <tr key={c.id} className="hover:bg-surface/50">
+                        <td className="p-4 font-mono font-bold text-text-primary">{c.code}</td>
+                        <td className="p-4 font-bold text-text-primary">{c.unitName}</td>
+                        <td className="p-4">{c.tenantName}</td>
+                        <td className="p-4">{c.startDate} a {c.endDate}</td>
+                        <td className="p-4 font-black text-brand-lime">R$ {c.monthlyAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                        <td className="p-4">{c.adjustmentIndex} • {c.guaranteeType.replace('_', ' ')}</td>
+                        <td className="p-4">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-700">
+                            {c.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              // Tenant Contract details
+              tenantContract && (
+                <div className="p-8 rounded-2xl bg-white border border-border shadow-sm space-y-6 max-w-3xl">
+                  <div className="flex items-center justify-between pb-4 border-b border-border">
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-brand-lime">Contrato Oficial</span>
+                      <h3 className="text-xl font-black text-text-primary">{tenantContract.code}</h3>
+                    </div>
+                    <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-emerald-100 text-emerald-700">
+                      {tenantContract.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div className="p-4 rounded-xl bg-surface border border-border space-y-1">
+                      <span className="text-text-secondary">Unidade Locada:</span>
+                      <div className="font-bold text-sm text-text-primary">{tenantContract.unitName}</div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-surface border border-border space-y-1">
+                      <span className="text-text-secondary">Valor do Aluguel Mensal:</span>
+                      <div className="font-bold text-sm text-brand-lime">
+                        R$ {tenantContract.monthlyAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-surface border border-border space-y-1">
+                      <span className="text-text-secondary">Período de Vigência:</span>
+                      <div className="font-bold text-sm text-text-primary">{tenantContract.startDate} até {tenantContract.endDate}</div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-surface border border-border space-y-1">
+                      <span className="text-text-secondary">Índice & Garantia:</span>
+                      <div className="font-bold text-sm text-text-primary">{tenantContract.adjustmentIndex} • {tenantContract.guaranteeType}</div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-surface border border-border text-xs text-text-secondary space-y-1">
+                    <div>Multa contratual por atraso: <span className="font-bold text-text-primary">{tenantContract.finePercent}%</span></div>
+                    <div>Juros de mora: <span className="font-bold text-text-primary">{tenantContract.interestPercent}% ao mês</span></div>
+                    <div>Proprietário locador: <span className="font-bold text-text-primary">{tenantContract.ownerName}</span></div>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
+        )}
+
+        {/* ==================================================================== */}
+        {/* ======================= ABA: BOLETOS =============================== */}
+        {/* ==================================================================== */}
+        {activeTab === 'boletos' && (
+          <div className="space-y-6">
+            <h2 className="text-base font-black text-text-primary">
+              {portalMode === 'OWNER' 
+                ? 'Lista Completa de Boletos das suas Unidades (Somente Leitura)' 
+                : 'Boletos em Aberto para Pagamento'}
+            </h2>
+
+            {portalMode === 'OWNER' ? (
+              // Owner: Full list, read-only without action buttons
+              <div className="bg-white rounded-2xl border border-border shadow-sm overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-surface border-b border-border text-text-secondary font-bold uppercase tracking-wider text-[10px]">
+                    <tr>
+                      <th className="p-4">Código</th>
+                      <th className="p-4">Unidade / Inquilino</th>
+                      <th className="p-4">Valor</th>
+                      <th className="p-4">Vencimento</th>
+                      <th className="p-4">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {ownerBoletos.map(b => (
+                      <tr key={b.id} className="hover:bg-surface/50">
+                        <td className="p-4 font-mono font-bold text-text-primary">{b.code}</td>
+                        <td className="p-4">
+                          <div className="font-bold text-text-primary">{b.unitName}</div>
+                          <div className="text-[11px] text-text-secondary">{b.tenantName}</div>
+                        </td>
+                        <td className="p-4 font-black text-text-primary">R$ {b.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                        <td className="p-4">{b.dueDate}</td>
+                        <td className="p-4">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                            b.status === 'PAGO' ? 'bg-emerald-100 text-emerald-700' :
+                            b.status === 'VENCIDO' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {b.status.replace('_', ' ')}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              // Tenant: Only OPEN or OVERDUE with payment buttons
+              <div className="space-y-4">
+                {tenantOpenBoletos.length === 0 ? (
+                  <div className="p-12 text-center bg-white rounded-2xl border border-border shadow-sm space-y-2">
+                    <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
+                    <h3 className="text-base font-bold text-text-primary">Parabéns! Nenhum boleto em aberto.</h3>
+                    <p className="text-xs text-text-secondary">Todos os seus pagamentos estão em dia.</p>
+                  </div>
+                ) : (
+                  tenantOpenBoletos.map(b => (
+                    <div key={b.id} className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <span className="font-mono text-xs font-bold text-brand-lime">{b.code}</span>
+                          <h3 className="text-lg font-black text-text-primary mt-0.5">{b.unitName}</h3>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-black text-text-primary">
+                            R$ {b.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </div>
+                          <div className="text-xs text-red-600 font-bold">Vencimento: {b.dueDate}</div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 rounded-xl bg-surface border border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="text-xs text-text-secondary">
+                          Pague instantaneamente via PIX ou copie a linha digitável do código de barras bancário.
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleCopy(b.pixCode)}
+                            className="px-4 py-2 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow flex items-center gap-1.5"
+                          >
+                            <QrCode className="w-3.5 h-3.5" />
+                            <span>{copiedCode === b.pixCode ? 'PIX Copiado!' : 'Copiar PIX'}</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleCopy(b.barCode)}
+                            className="px-4 py-2 rounded-xl bg-white border border-border text-text-primary text-xs font-bold hover:border-brand-lime flex items-center gap-1.5"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>{copiedCode === b.barCode ? 'Copiado!' : 'Código de Barras'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ==================================================================== */}
+        {/* ======================= ABA: PAGAMENTOS / EXTRATOS ================= */}
+        {/* ==================================================================== */}
+        {activeTab === 'pagamentos' && (
+          <div className="space-y-6">
+            <h2 className="text-base font-black text-text-primary">
+              {portalMode === 'OWNER' 
+                ? 'Extrato por Competência, Despesas e Comprovantes de Repasse' 
+                : 'Histórico de Boletos Já Quitados'}
+            </h2>
+
+            {portalMode === 'OWNER' ? (
+              // Owner statement
+              <div className="space-y-4">
+                {ownerPayments.map(p => (
+                  <div key={p.id} className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-border">
+                      <div>
+                        <span className="text-[10px] font-black uppercase text-brand-lime">Competência</span>
+                        <h3 className="text-lg font-black text-text-primary">{p.competence} • {p.unitName}</h3>
+                      </div>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                        p.status === 'CONCILIADO' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                        {p.status.replace('_', ' ')}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <div className="p-3 rounded-xl bg-surface border border-border">
+                        <span className="text-text-secondary block">Aluguel Bruto:</span>
+                        <span className="font-bold text-sm text-text-primary">
+                          R$ {p.expectedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-surface border border-border">
+                        <span className="text-text-secondary block">Taxa Adm i7:</span>
+                        <span className="font-bold text-sm text-text-secondary">
+                          - R$ {p.adminFeeAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-surface border border-border">
+                        <span className="text-text-secondary block">Despesas Abatidas:</span>
+                        <span className="font-bold text-sm text-red-600">
+                          - R$ {p.expensesDeducted.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-brand-lime/10 border border-brand-lime/30">
+                        <span className="text-brand-lime font-bold block">Líquido Repassado:</span>
+                        <span className="font-black text-base text-brand-lime">
+                          R$ {p.transferredAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {p.transferReceiptUrl && (
+                      <div className="pt-2 flex justify-end">
+                        <a 
+                          href={p.transferReceiptUrl} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="px-3 py-1.5 rounded-xl bg-surface border border-border text-xs font-bold text-text-primary hover:border-brand-lime flex items-center gap-1.5"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 text-brand-lime" /> Baixar Comprovante de Repasse (PDF)
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // Tenant Paid History
+              <div className="space-y-3">
+                {tenantPaidBoletos.map(b => (
+                  <div key={b.id} className="p-5 rounded-2xl bg-white border border-border shadow-sm flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-sm text-text-primary">{b.unitName}</div>
+                      <div className="text-xs text-text-secondary mt-0.5">
+                        Quitado em {b.paidAt} • {b.code}
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <div className="font-black text-sm text-emerald-600">
+                        R$ {b.paidAmount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </div>
+                      <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 justify-end mt-0.5">
+                        <CheckCircle2 className="w-3 h-3" /> Pago com Sucesso
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ==================================================================== */}
+        {/* ======================= ABA: REPASSES (PROPRIETÁRIO) =============== */}
+        {/* ==================================================================== */}
+        {activeTab === 'repasses' && portalMode === 'OWNER' && (
+          <div className="space-y-6">
+            <h2 className="text-base font-black text-text-primary">
+              Histórico de Transferências Bancárias / PIX
+            </h2>
+
+            <div className="bg-white rounded-2xl border border-border shadow-sm overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-surface border-b border-border text-text-secondary font-bold uppercase tracking-wider text-[10px]">
+                  <tr>
+                    <th className="p-4">Data do Repasse</th>
+                    <th className="p-4">Competência</th>
+                    <th className="p-4">Unidade</th>
+                    <th className="p-4">Valor Líquido</th>
+                    <th className="p-4">Forma de Envio</th>
+                    <th className="p-4">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {ownerPayments.map(p => (
+                    <tr key={p.id} className="hover:bg-surface/50">
+                      <td className="p-4 font-bold text-text-primary">{p.transferDate || 'Em processamento'}</td>
+                      <td className="p-4">{p.competence}</td>
+                      <td className="p-4 font-bold text-text-primary">{p.unitName}</td>
+                      <td className="p-4 font-black text-blue-600">
+                        R$ {p.transferredAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="p-4 text-text-secondary">Chave PIX (Asaas)</td>
+                      <td className="p-4">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-700">
+                          {p.status === 'CONCILIADO' ? 'Transferido' : 'Pendente'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ==================================================================== */}
+        {/* ======================= ABA: MANUTENÇÕES =========================== */}
+        {/* ==================================================================== */}
+        {activeTab === 'manutencoes' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-black text-text-primary">
+                {portalMode === 'OWNER' ? 'Status e Orçamento dos Chamados nas suas Unidades' : 'Meus Chamados de Manutenção'}
+              </h2>
+
+              {portalMode === 'TENANT' && (
+                <button
+                  onClick={() => setIsNewTicketModalOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" /> Abrir Novo Chamado
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {(portalMode === 'OWNER' ? ownerMaintenances : tenantMaintenances).map(mnt => (
+                <div key={mnt.id} className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-brand-lime">{mnt.category} • Urgência: {mnt.urgency}</span>
+                      <h3 className="font-extrabold text-base text-text-primary mt-0.5">{mnt.title}</h3>
+                      <p className="text-xs text-text-secondary">{mnt.unitName}</p>
+                    </div>
+
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                      mnt.status === 'CONCLUIDO' ? 'bg-emerald-100 text-emerald-700' :
+                      mnt.status === 'EM_ANDAMENTO' ? 'bg-blue-100 text-blue-700' :
+                      mnt.status === 'EM_ANALISE' ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700'
+                    }`}>
+                      {mnt.status.replace('_', ' ')}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-text-secondary leading-relaxed p-3 rounded-xl bg-surface border border-border">
+                    {mnt.description}
+                  </p>
+
+                  <div className="pt-2 border-t border-border flex items-center justify-between text-xs">
+                    <span className="text-text-secondary">
+                      Orçamento: <span className="font-bold text-text-primary">
+                        {mnt.estimatedCost ? `R$ ${mnt.estimatedCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'Em levantamento'}
+                      </span>
+                    </span>
+                    <span className="text-text-muted text-[11px]">{mnt.createdAt}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ==================================================================== */}
+        {/* ======================= ABA: DOCUMENTOS ============================ */}
+        {/* ==================================================================== */}
+        {activeTab === 'documentos' && (
+          <div className="space-y-6">
+            <h2 className="text-base font-black text-text-primary">
+              {portalMode === 'OWNER' ? 'Arquivos Ligados às suas Propriedades' : 'Documentos Liberados para Você'}
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {(portalMode === 'OWNER' ? ownerDocuments : tenantDocuments).map(doc => (
+                <div key={doc.id} className="p-5 rounded-2xl bg-white border border-border shadow-sm flex flex-col justify-between space-y-4 hover:border-brand-lime transition-all">
+                  <div className="space-y-2">
+                    <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-brand-lime/10 text-brand-lime">
+                      {doc.category}
+                    </span>
+                    <h3 className="font-bold text-sm text-text-primary">{doc.title}</h3>
+                    <p className="text-xs text-text-secondary">{doc.unitName}</p>
+                  </div>
+
+                  <a
+                    href={doc.fileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-2 rounded-xl bg-surface hover:bg-surface-hover text-text-primary font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 text-brand-lime" /> Visualizar Arquivo ({doc.fileSize})
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ==================================================================== */}
+        {/* ======================= ABA: COMUNICADOS =========================== */}
+        {/* ==================================================================== */}
+        {activeTab === 'comunicados' && (
+          <div className="space-y-6">
+            <h2 className="text-base font-black text-text-primary">
+              Mural de Comunicados e Avisos Prediais
+            </h2>
+
+            <div className="space-y-4">
+              {announcements.map(ann => {
+                const currentUserId = session?.user?.id || 'curr-user';
+                const hasRead = ann.readBy.some(r => r.userId === currentUserId);
+
+                return (
+                  <div key={ann.id} className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase bg-brand-lime/10 text-brand-lime">
+                        {ann.unitScope}
+                      </span>
+                      <span className="text-xs text-text-secondary">{ann.createdAt}</span>
+                    </div>
+
+                    <h3 className="text-base font-extrabold text-text-primary">{ann.title}</h3>
+                    <p className="text-xs text-text-secondary leading-relaxed whitespace-pre-line">
+                      {ann.content}
+                    </p>
+
+                    {portalMode === 'TENANT' && (
+                      <div className="pt-3 border-t border-border flex items-center justify-between">
+                        {hasRead ? (
+                          <span className="text-xs text-emerald-700 font-bold flex items-center gap-1.5">
+                            <CheckCircle2 className="w-4 h-4" /> Você confirmou a leitura deste comunicado
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleConfirmReadAnnouncement(ann.id)}
+                            className="px-4 py-2 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow flex items-center gap-1.5"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Confirmar Leitura
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ==================================================================== */}
+        {/* ======================= ABA: RELATÓRIOS (PROPRIETÁRIO) ============= */}
+        {/* ==================================================================== */}
+        {activeTab === 'relatorios' && portalMode === 'OWNER' && (
+          <div className="space-y-6">
+            <h2 className="text-base font-black text-text-primary">
+              Gráfico de Repasses Líquidos por Competência
+            </h2>
+
+            <div className="p-8 rounded-2xl bg-white border border-border shadow-sm space-y-6">
+              <div className="text-xs text-text-secondary">
+                Valores líquidos já deduzidos de comissão de administração e manutenções do mês.
+              </div>
+
+              {/* Bar Chart Visualization */}
+              <div className="space-y-4">
+                {[
+                  { month: 'Mai/2026', value: 6850, max: 10000 },
+                  { month: 'Jun/2026', value: 7120, max: 10000 },
+                  { month: 'Jul/2026', value: 6940, max: 10000 },
+                  { month: 'Ago/2026', value: 7120, max: 10000 },
+                  { month: 'Set/2026 (Previsto)', value: 7450, max: 10000 }
+                ].map((item, idx) => (
+                  <div key={idx} className="space-y-1.5">
+                    <div className="flex justify-between text-xs font-bold text-text-primary">
+                      <span>{item.month}</span>
+                      <span className="text-brand-lime">R$ {item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="w-full h-3 bg-surface rounded-full overflow-hidden border border-border">
+                      <div 
+                        className="h-full bg-brand-lime rounded-full"
+                        style={{ width: `${(item.value / item.max) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ==================================================================== */}
+        {/* ======================= ABA: PERFIL ================================ */}
+        {/* ==================================================================== */}
+        {activeTab === 'perfil' && (
+          <div className="max-w-xl mx-auto space-y-6">
+            <h2 className="text-base font-black text-text-primary">
+              Meu Perfil & Segurança
+            </h2>
+
+            <div className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
+              <h3 className="font-bold text-sm text-text-primary flex items-center gap-2">
+                <Lock className="w-4 h-4 text-brand-lime" /> Alterar Senha de Acesso
+              </h3>
+
+              {passwordSuccess && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4" /> Senha atualizada com sucesso!
+                </div>
+              )}
+
+              <form onSubmit={handlePasswordChange} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-text-secondary mb-1">Senha Atual</label>
+                  <input
+                    type="password"
+                    required
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-text-secondary mb-1">Nova Senha</label>
+                  <input
+                    type="password"
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-text-secondary mb-1">Confirmar Nova Senha</label>
+                  <input
+                    type="password"
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow-md transition-all"
+                  >
+                    Salvar Nova Senha
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* Modal Abertura de Chamado pelo Inquilino */}
+      {isNewTicketModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-border max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="text-base font-black text-text-primary">Abrir Chamado de Manutenção</h3>
+              <button onClick={() => setIsNewTicketModalOpen(false)} className="p-1 rounded-lg text-text-secondary hover:bg-surface">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateTenantTicket} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-text-secondary mb-1">Qual é o problema?</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Torneira da cozinha gotejando"
+                  value={ticketTitle}
+                  onChange={(e) => setTicketTitle(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-text-secondary mb-1">Categoria</label>
+                  <select
+                    value={ticketCategory}
+                    onChange={(e: any) => setTicketCategory(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs font-medium text-text-primary focus:outline-none focus:border-brand-lime"
+                  >
+                    <option value="HIDRAULICA">Hidráulica (Vazamentos/Pias)</option>
+                    <option value="ELETRICA">Elétrica (Disjuntores/Tomadas)</option>
+                    <option value="ESTRUTURAL">Estrutural (Portas/Janelas)</option>
+                    <option value="PINTURA">Pintura</option>
+                    <option value="OUTROS">Outros</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-text-secondary mb-1">Nível de Urgência</label>
+                  <select
+                    value={ticketUrgency}
+                    onChange={(e: any) => setTicketUrgency(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs font-medium text-text-primary focus:outline-none focus:border-brand-lime"
+                  >
+                    <option value="BAIXA">Baixa (Pode aguardar)</option>
+                    <option value="MEDIA">Média (Atenção nesta semana)</option>
+                    <option value="ALTA">Alta (Urgência)</option>
+                    <option value="EMERGENCIA">Emergência Imediata</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-text-secondary mb-1">Descrição Detalhada</label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Conte com detalhes o que aconteceu e os melhores horários para visita técnica..."
+                  value={ticketDescription}
+                  onChange={(e) => setTicketDescription(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-border flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsNewTicketModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-surface text-text-secondary text-xs font-bold hover:bg-surface-hover"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow-md flex items-center gap-1.5"
+                >
+                  <Send className="w-3.5 h-3.5" /> Enviar Chamado
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

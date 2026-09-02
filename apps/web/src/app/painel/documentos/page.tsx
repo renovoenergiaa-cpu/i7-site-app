@@ -1,231 +1,272 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { UploadCloud, FileText, CheckCircle2, AlertCircle, ExternalLink, RefreshCw } from 'lucide-react';
-import Link from 'next/link';
-
-interface DocumentModel {
-  id: string;
-  title: string;
-  url: string;
-  type: string;
-  createdAt: string;
-}
+import { 
+  FolderOpen, 
+  UploadCloud, 
+  FileText, 
+  Search, 
+  Filter, 
+  Download, 
+  ExternalLink, 
+  Plus, 
+  X, 
+  CheckCircle2, 
+  Trash2 
+} from 'lucide-react';
+import { GestaoDocument, INITIAL_DOCUMENTS, getStoredData, saveStoredData } from '@/lib/gestaoData';
 
 export default function AdminDocumentsPage() {
-  const [file, setFile] = useState<File | null>(null);
-  const [title, setTitle] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  
-  const [documents, setDocuments] = useState<DocumentModel[]>([]);
-  const [isLoadingDocs, setIsLoadingDocs] = useState(true);
+  const [docs, setDocs] = useState<GestaoDocument[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const fetchDocuments = async () => {
-    setIsLoadingDocs(true);
-    try {
-      const { getCurrentSession } = await import('@/lib/auth');
-      const s = getCurrentSession();
-      const token = s?.accessToken;
-      const res = await fetch('http://localhost:4000/api/documents/my-documents', {
-        headers: {
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setDocuments(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch documents', error);
-    } finally {
-      setIsLoadingDocs(false);
-    }
-  };
+  // New Document form
+  const [newTitle, setNewTitle] = useState('');
+  const [newCategory, setNewCategory] = useState<'CONTRATO' | 'VISTORIA' | 'APOLICE' | 'REGULAMENTO' | 'NOTIFICACAO'>('CONTRATO');
+  const [newUnit, setNewUnit] = useState('Edifício Paulista Corporate');
+  const [newTargetRole, setNewTargetRole] = useState<'TODOS' | 'PROPRIETARIO' | 'INQUILINO'>('TODOS');
+  const [newUrl, setNewUrl] = useState('');
 
   useEffect(() => {
-    fetchDocuments();
+    setDocs(getStoredData('documents', INITIAL_DOCUMENTS));
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
-      setUploadStatus('idle');
-    }
-  };
-
-  const handleUpload = async (e: React.FormEvent) => {
+  const handleUploadDoc = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) return;
+    if (!newTitle) return;
 
-    setIsUploading(true);
-    setUploadStatus('idle');
+    const newDoc: GestaoDocument = {
+      id: `doc-${Date.now()}`,
+      title: newTitle,
+      category: newCategory,
+      unitName: newUnit,
+      targetRole: newTargetRole,
+      fileUrl: newUrl || 'https://docs.i7.com.br/arquivos/exemplo-documento.pdf',
+      fileSize: '1.8 MB',
+      uploadedAt: new Date().toLocaleDateString('pt-BR')
+    };
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('title', title || file.name);
-    formData.append('type', 'CONTRACT');
+    const updated = [newDoc, ...docs];
+    setDocs(updated);
+    saveStoredData('documents', updated);
+    setIsModalOpen(false);
+    setNewTitle('');
+    setNewUrl('');
+  };
 
-    try {
-      const { getCurrentSession } = await import('@/lib/auth');
-      const s = getCurrentSession();
-      const token = s?.accessToken;
-      const res = await fetch('http://localhost:4000/api/documents/upload', {
-        method: 'POST',
-        headers: {
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: formData,
-      });
-
-      if (!res.ok) {
-        throw new Error('Falha no upload do documento');
-      }
-
-      setUploadStatus('success');
-      setFile(null);
-      setTitle('');
-      
-      // Atualiza a lista após salvar com sucesso
-      fetchDocuments();
-    } catch (error) {
-      console.error(error);
-      setUploadStatus('error');
-    } finally {
-      setIsUploading(false);
+  const handleDelete = (id: string) => {
+    if (confirm('Tem certeza que deseja remover este documento?')) {
+      const updated = docs.filter(d => d.id !== id);
+      setDocs(updated);
+      saveStoredData('documents', updated);
     }
   };
+
+  const filteredDocs = docs.filter(d => {
+    const matchesSearch = 
+      d.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      d.unitName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCat = categoryFilter === 'ALL' || d.category === categoryFilter;
+    return matchesSearch && matchesCat;
+  });
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      
+      {/* Header */}
+      <div className="p-8 rounded-2xl bg-white border border-border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-extrabold text-text-primary">Gestão de Documentos</h1>
-          <p className="text-sm text-text-secondary mt-1">Faça o upload e gerencie seus arquivos</p>
-        </div>
-        <Link href="/painel" className="px-4 py-2 rounded-xl border border-border text-sm font-bold text-text-primary hover:bg-surface-hover transition-colors">
-          Voltar ao Painel
-        </Link>
-      </div>
-
-      {/* Upload Form */}
-      <div className="p-8 rounded-2xl bg-white border border-border shadow-sm">
-        <h2 className="text-lg font-bold text-text-primary mb-4">Enviar Novo Arquivo</h2>
-        <form onSubmit={handleUpload} className="space-y-6">
-          <div>
-            <label className="block text-sm font-bold text-text-primary mb-2">Título do Documento</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: Contrato de Locação - João Silva"
-              className="w-full px-4 py-3 rounded-xl bg-surface-hover border border-border text-sm text-text-primary focus:outline-none focus:border-brand-lime transition-colors"
-            />
+          <div className="flex items-center gap-2">
+            <FolderOpen className="w-6 h-6 text-brand-lime" />
+            <h1 className="text-2xl font-black text-text-primary">Repositório de Documentos</h1>
           </div>
-
-          <div>
-            <label className="block text-sm font-bold text-text-primary mb-2">Arquivo (PDF, JPG, PNG)</label>
-            <div className="border-2 border-dashed border-border rounded-2xl p-10 flex flex-col items-center justify-center bg-surface-hover/50 hover:bg-surface-hover transition-colors relative">
-              <input 
-                type="file" 
-                onChange={handleFileChange}
-                accept=".pdf,image/*"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
-              <UploadCloud className="w-10 h-10 text-brand-lime mb-3" />
-              {file ? (
-                <div className="text-center">
-                  <p className="text-sm font-bold text-text-primary flex items-center justify-center gap-2">
-                    <FileText className="w-4 h-4" /> {file.name}
-                  </p>
-                  <p className="text-xs text-text-secondary mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB - Clique para alterar</p>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <p className="text-sm font-bold text-text-primary">Arraste seu arquivo ou clique para selecionar</p>
-                  <p className="text-xs text-text-secondary mt-1">Tamanho máximo: 10MB</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-border flex items-center justify-between">
-            <div>
-              {uploadStatus === 'success' && (
-                <p className="text-sm font-bold text-green-600 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4" /> Documento salvo com sucesso!
-                </p>
-              )}
-              {uploadStatus === 'error' && (
-                <p className="text-sm font-bold text-red-600 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" /> Erro ao enviar documento.
-                </p>
-              )}
-            </div>
-            
-            <button
-              type="submit"
-              disabled={!file || isUploading}
-              className="px-6 py-3 rounded-xl font-bold bg-brand-lime text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-lime-hover transition-colors shadow-md flex items-center gap-2"
-            >
-              {isUploading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Enviando...
-                </>
-              ) : (
-                <>
-                  <UploadCloud className="w-4 h-4" /> Salvar Documento
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Lista de Documentos */}
-      <div className="p-8 rounded-2xl bg-white border border-border shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold text-text-primary">Arquivos Salvos</h2>
-          <button onClick={fetchDocuments} className="p-2 text-text-muted hover:text-brand-lime transition-colors">
-            <RefreshCw className={`w-5 h-5 ${isLoadingDocs ? 'animate-spin' : ''}`} />
-          </button>
+          <p className="text-sm text-text-secondary mt-1">
+            Upload e consulta de contratos assinados, vistorias, laudos e termos vinculados a quem interessa.
+          </p>
         </div>
 
-        {isLoadingDocs ? (
-          <div className="py-10 text-center text-text-muted">Carregando documentos...</div>
-        ) : documents.length === 0 ? (
-          <div className="py-10 text-center text-text-muted border-2 border-dashed border-border rounded-xl">
-            Nenhum documento salvo ainda.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {documents.map((doc) => (
-              <div key={doc.id} className="flex items-center justify-between p-4 rounded-xl border border-border hover:border-brand-lime hover:shadow-sm transition-all bg-surface-hover/30">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-brand-lime/10 flex items-center justify-center text-brand-lime">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-text-primary">{doc.title}</h3>
-                    <p className="text-xs text-text-secondary mt-0.5">
-                      Enviado em {new Date(doc.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                </div>
-                <a 
-                  href={doc.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="p-2.5 bg-white border border-border rounded-lg text-sm font-bold hover:bg-surface-hover transition-colors flex items-center gap-2"
-                >
-                  <ExternalLink className="w-4 h-4" /> Abrir
-                </a>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="px-4 py-2.5 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow-md flex items-center gap-2 transition-all self-start md:self-auto"
+        >
+          <UploadCloud className="w-4 h-4" /> Enviar Novo Documento
+        </button>
+      </div>
+
+      {/* Filter and Search Bar */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl border border-border shadow-sm">
+        <div className="relative w-full sm:w-96">
+          <Search className="w-4 h-4 text-text-secondary absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Buscar por título ou unidade vinculada..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-brand-lime"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Filter className="w-4 h-4 text-text-secondary" />
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="px-3 py-2 rounded-xl bg-surface border border-border text-xs font-bold text-text-primary focus:outline-none focus:border-brand-lime"
+          >
+            <option value="ALL">Todas as Categorias</option>
+            <option value="CONTRATO">Contratos</option>
+            <option value="VISTORIA">Laudos de Vistoria</option>
+            <option value="REGULAMENTO">Regulamentos Internos</option>
+            <option value="APOLICE">Apólices de Seguro</option>
+            <option value="NOTIFICACAO">Notificações Legais</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Documents Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {filteredDocs.map((doc) => (
+          <div key={doc.id} className="p-5 rounded-2xl bg-white border border-border shadow-sm flex flex-col justify-between hover:border-brand-lime transition-all space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-brand-lime/10 text-brand-lime">
+                  {doc.category}
+                </span>
+                <span className="text-[10px] text-text-secondary font-bold">
+                  {doc.fileSize}
+                </span>
               </div>
-            ))}
+
+              <h3 className="font-bold text-sm text-text-primary leading-snug">
+                {doc.title}
+              </h3>
+
+              <div className="text-xs text-text-secondary space-y-0.5">
+                <div>Unidade: <span className="font-bold text-text-primary">{doc.unitName}</span></div>
+                <div>Visibilidade: <span className="font-bold text-brand-lime">{doc.targetRole}</span></div>
+                <div className="text-[11px] text-text-muted">Enviado em {doc.uploadedAt}</div>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-border flex items-center justify-between">
+              <a
+                href={doc.fileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3 py-1.5 rounded-xl bg-surface hover:bg-surface-hover text-text-primary font-bold text-xs flex items-center gap-1.5 transition-colors"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-brand-lime" /> Visualizar
+              </a>
+
+              <button
+                onClick={() => handleDelete(doc.id)}
+                className="p-1.5 rounded-lg text-text-secondary hover:text-red-600 hover:bg-red-50 transition-colors"
+                title="Remover documento"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-        )}
+        ))}
       </div>
+
+      {/* Modal Upload Documento */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-border max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="text-base font-black text-text-primary">Cadastrar / Enviar Documento</h3>
+              <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-lg text-text-secondary hover:bg-surface">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUploadDoc} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-text-secondary mb-1">Título do Documento</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Laudo de Vistoria de Saída"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-text-secondary mb-1">Categoria</label>
+                  <select
+                    value={newCategory}
+                    onChange={(e: any) => setNewCategory(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs font-medium text-text-primary focus:outline-none focus:border-brand-lime"
+                  >
+                    <option value="CONTRATO">Contrato de Locação</option>
+                    <option value="VISTORIA">Laudo de Vistoria</option>
+                    <option value="APOLICE">Apólice de Seguro</option>
+                    <option value="REGULAMENTO">Regulamento Interno</option>
+                    <option value="NOTIFICACAO">Notificação Formal</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-text-secondary mb-1">Público Alvo (Quem Vê)</label>
+                  <select
+                    value={newTargetRole}
+                    onChange={(e: any) => setNewTargetRole(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs font-medium text-text-primary focus:outline-none focus:border-brand-lime"
+                  >
+                    <option value="TODOS">Todos (Proprietário + Inquilino)</option>
+                    <option value="PROPRIETARIO">Apenas Proprietário</option>
+                    <option value="INQUILINO">Apenas Inquilino</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-text-secondary mb-1">Unidade / Imóvel Vinculado</label>
+                <input
+                  type="text"
+                  value={newUnit}
+                  onChange={(e) => setNewUnit(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-text-secondary mb-1">Link ou Arquivo PDF</label>
+                <input
+                  type="url"
+                  placeholder="https://docs.i7.com.br/arquivo.pdf"
+                  value={newUrl}
+                  onChange={(e) => setNewUrl(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-border flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-surface text-text-secondary text-xs font-bold hover:bg-surface-hover"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow-md"
+                >
+                  Salvar Documento
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
