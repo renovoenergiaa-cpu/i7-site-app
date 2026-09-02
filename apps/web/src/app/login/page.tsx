@@ -73,8 +73,8 @@ export default function LoginPage() {
             i7
           </div>
           <h1 className="text-2xl font-black text-text-primary">
-            {mode === 'login' && 'Acessar Conta i7'}
-            {mode === 'register' && 'Criar Conta no i7'}
+            {mode === 'login' && 'Acessar Conta'}
+            {mode === 'register' && 'Criar Conta'}
             {mode === 'verify' && 'Confirmar E-mail'}
           </h1>
           <p className="text-xs text-text-secondary">

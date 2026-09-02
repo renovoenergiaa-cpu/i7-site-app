@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { ShieldCheck, Smartphone, Lock, Sparkles, Building2, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Smartphone, Lock, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
@@ -16,7 +16,7 @@ export const Footer: React.FC = () => {
               <div className="w-10 h-10 rounded-full bg-surface border border-brand-lime/40 flex items-center justify-center">
                 <span className="font-black text-lg text-brand-lime">i7</span>
               </div>
-              <span className="text-xl font-bold text-text-primary tracking-wide">i7 Imobiliária</span>
+              <span className="text-xl font-bold text-text-primary tracking-wide">Inteligência Imobiliária</span>
             </div>
             <p className="text-sm text-text-secondary leading-relaxed">
               Plataforma digital de Inteligência Imobiliária. Tecnologia moderna, burocracia zero e segurança completa para locação e compra de imóveis.
@@ -46,14 +46,14 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2.5 text-sm text-text-secondary">
               <li><Link href="/anunciar" className="hover:text-brand-lime transition-colors">Anunciar meu imóvel grátis</Link></li>
               <li><Link href="/anunciar" className="hover:text-brand-lime transition-colors">Como funciona a Avaliação</Link></li>
-              <li><Link href="/corretores" className="hover:text-brand-lime transition-colors">Seja um Corretor Parceiro i7</Link></li>
+              <li><Link href="/corretores" className="hover:text-brand-lime transition-colors">Seja um Corretor Parceiro</Link></li>
             </ul>
           </div>
 
         </div>
 
         <div className="mt-12 pt-8 border-t border-border/50 flex flex-col md:flex-row items-center justify-between text-xs text-text-muted gap-4">
-          <p>© 2026 i7 Inteligência Imobiliária S.A. Todos os direitos reservados.</p>
+          <p>© 2026 Inteligência Imobiliária S.A. Todos os direitos reservados.</p>
           <div className="flex gap-6">
             <Link href="#" className="hover:text-text-secondary">Termos de Uso</Link>
             <Link href="#" className="hover:text-text-secondary">Política de Privacidade</Link>

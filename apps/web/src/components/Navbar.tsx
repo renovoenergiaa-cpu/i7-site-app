@@ -37,10 +37,7 @@ export const Navbar: React.FC = () => {
             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-brand-lime border-2 border-background animate-pulse" />
           </div>
           <div className="flex flex-col">
-            <span className="text-xl font-bold font-sans text-text-primary tracking-wide leading-none group-hover:text-brand-lime transition-colors">
-              i7
-            </span>
-            <span className="text-[10px] font-semibold text-text-secondary tracking-wider uppercase mt-0.5">
+            <span className="text-xs sm:text-sm font-bold font-sans text-text-primary tracking-wider uppercase group-hover:text-brand-lime transition-colors">
               INTELIGÊNCIA IMOBILIÁRIA
             </span>
           </div>
