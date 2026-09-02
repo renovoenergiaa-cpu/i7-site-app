@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js build output
+.next/
+out/
+
+# NestJS build output
+dist/
+
+# Prisma & Local Databases
+apps/api/prisma/dev.db
+apps/api/prisma/dev.db-journal
+
+# Environment variables
+.env
+.env.local
+.env.production
+apps/api/.env
+apps/web/.env
+apps/admin/.env
+
+# Expo / Mobile artifacts
+.expo/
+*.apk
+*.aab
+*.ipa
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System files
+.DS_Store
+Thumbs.db
+
+.vercel

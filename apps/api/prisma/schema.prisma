@@ -1,0 +1,266 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String             @id @default(uuid())
+  name                String
+  email               String             @unique
+  phone               String?
+  passwordHash        String
+  role                String             @default("TENANT")
+  verified            Boolean            @default(false)
+  verificationCode    String?
+  avatarUrl           String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  conversationsAsUser ConversationUser[]
+  favorites           Favorite[]
+  sentMessages        Message[]
+  properties          Property[]         @relation("OwnerProperties")
+  proposals           Proposal[]
+  visits              Visit[]
+  documents           Document[]
+  announcementReads   AnnouncementRead[]
+  transfers           Transfer[]         @relation("OwnerTransfers")
+}
+
+model Property {
+  id              String               @id @default(uuid())
+  ownerId         String
+  title           String
+  description     String
+  type            String               @default("APARTMENT")
+  status          String               @default("PUBLISHED")
+  street          String
+  number          String
+  complement      String?
+  neighborhood    String
+  city            String
+  state           String
+  zipCode         String
+  latitude        Float
+  longitude       Float
+  rentPrice       Float
+  salePrice       Float?
+  condoFee        Float                @default(0)
+  iptuFee         Float                @default(0)
+  serviceFee      Float                @default(0)
+  bedrooms        Int                  @default(1)
+  bathrooms       Int                  @default(1)
+  parkingSpots    Int                  @default(0)
+  areaSqm         Float
+  furnished       Boolean              @default(false)
+  petFriendly     Boolean              @default(true)
+  hasVirtualTour  Boolean              @default(false)
+  virtualTourUrl  String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  contracts       Contract[]
+  conversations   Conversation[]
+  favorites       Favorite[]
+  maintenanceReqs MaintenanceRequest[]
+  owner           User                 @relation("OwnerProperties", fields: [ownerId], references: [id])
+  media           PropertyMedia[]
+  proposals       Proposal[]
+  visits          Visit[]
+  documents       Document[]
+  expenses        Expense[]
+}
+
+model PropertyMedia {
+  id         String   @id @default(uuid())
+  propertyId String
+  url        String
+  type       String   @default("PHOTO")
+  order      Int      @default(0)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+model Favorite {
+  id         String   @id @default(uuid())
+  userId     String
+  propertyId String
+  createdAt  DateTime @default(now())
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, propertyId])
+}
+
+model Visit {
+  id         String   @id @default(uuid())
+  propertyId String
+  userId     String
+  dateTime   DateTime
+  type       String   @default("IN_PERSON")
+  status     String   @default("SCHEDULED")
+  notes      String?
+  createdAt  DateTime @default(now())
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Proposal {
+  id             String     @id @default(uuid())
+  propertyId     String
+  userId         String
+  proposedAmount Float
+  notes          String?
+  status         String     @default("PENDING")
+  createdAt      DateTime   @default(now())
+  contracts      Contract[]
+  property       Property   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Contract {
+  id                  String               @id @default(uuid())
+  proposalId          String
+  propertyId          String
+  startDate           DateTime
+  endDate             DateTime
+  monthlyAmount       Float
+  status              String               @default("ACTIVE")
+  signedDocumentUrl   String?
+  createdAt           DateTime             @default(now())
+  property            Property             @relation(fields: [propertyId], references: [id])
+  proposal            Proposal             @relation(fields: [proposalId], references: [id])
+  maintenanceRequests MaintenanceRequest[]
+  payments            Payment[]
+  documents           Document[]
+}
+
+model Payment {
+  id            String    @id @default(uuid())
+  contractId    String
+  amount        Float
+  dueDate       DateTime
+  status        String    @default("PENDING")
+  method        String    @default("PIX")
+  transactionId String?
+  pixQrCode     String?
+  pixKey        String?
+  barCode       String?
+  paidAt        DateTime?
+  createdAt     DateTime  @default(now())
+  contract      Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+model Conversation {
+  id         String             @id @default(uuid())
+  propertyId String
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  property   Property           @relation(fields: [propertyId], references: [id])
+  users      ConversationUser[]
+  messages   Message[]
+}
+
+model ConversationUser {
+  conversationId String
+  userId         String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  senderId       String
+  text           String
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id])
+}
+
+model MaintenanceRequest {
+  id          String   @id @default(uuid())
+  contractId  String
+  propertyId  String
+  description String
+  status      String   @default("OPEN")
+  priority    String   @default("MEDIUM")
+  createdAt   DateTime @default(now())
+  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  property    Property @relation(fields: [propertyId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  resource  String
+  details   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  title       String
+  url         String
+  type        String   @default("CONTRACT")
+  uploadedBy  String
+  propertyId  String?
+  contractId  String?
+  userId      String?
+  createdAt   DateTime @default(now())
+  
+  property    Property? @relation(fields: [propertyId], references: [id])
+  contract    Contract? @relation(fields: [contractId], references: [id])
+  user        User?     @relation(fields: [userId], references: [id])
+}
+
+model Announcement {
+  id          String   @id @default(uuid())
+  title       String
+  content     String
+  target      String   @default("ALL")
+  createdAt   DateTime @default(now())
+  reads       AnnouncementRead[]
+}
+
+model AnnouncementRead {
+  id             String   @id @default(uuid())
+  announcementId String
+  userId         String
+  readAt         DateTime @default(now())
+
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  propertyId  String
+  description String
+  amount      Float
+  date        DateTime
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+model Transfer {
+  id            String   @id @default(uuid())
+  ownerId       String
+  amount        Float
+  date          DateTime
+  status        String   @default("PENDING")
+  transactionId String?
+  createdAt     DateTime @default(now())
+
+  owner         User     @relation("OwnerTransfers", fields: [ownerId], references: [id], onDelete: Cascade)
+}

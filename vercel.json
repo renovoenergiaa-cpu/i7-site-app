@@ -1,0 +1,6 @@
+{
+  "name": "i7-site",
+  "buildCommand": "npx turbo run build --filter=@i7/web",
+  "outputDirectory": "apps/web/.next",
+  "framework": "nextjs"
+}
