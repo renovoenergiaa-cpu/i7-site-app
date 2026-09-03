@@ -29,7 +29,8 @@ import {
   Send,
   Eye,
   LogOut,
-  Calendar
+  Calendar,
+  Printer
 } from 'lucide-react';
 import { getCurrentSession, logoutUser, UserSession } from '@/lib/auth';
 import { 
@@ -71,6 +72,7 @@ export default function PortalUnificadoPage() {
 
   // UI helpers
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [viewingBoleto, setViewingBoleto] = useState<GestaoBoleto | null>(null);
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
   const [ticketTitle, setTicketTitle] = useState('');
   const [ticketCategory, setTicketCategory] = useState<'ELETRICA' | 'HIDRAULICA' | 'ESTRUTURAL' | 'PINTURA' | 'OUTROS'>('HIDRAULICA');
@@ -86,7 +88,20 @@ export default function PortalUnificadoPage() {
   useEffect(() => {
     const s = getCurrentSession();
     setSession(s);
-    if (s?.user?.role === 'TENANT') {
+
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const viewParam = searchParams.get('view');
+      if (viewParam === 'owner') {
+        setPortalMode('OWNER');
+      } else if (viewParam === 'tenant') {
+        setPortalMode('TENANT');
+      } else if (s?.user?.role === 'TENANT') {
+        setPortalMode('TENANT');
+      } else {
+        setPortalMode('OWNER');
+      }
+    } else if (s?.user?.role === 'TENANT') {
       setPortalMode('TENANT');
     } else {
       setPortalMode('OWNER');
@@ -133,6 +148,43 @@ export default function PortalUnificadoPage() {
     alert('Leitura confirmada com sucesso! O administrador já foi notificado.');
   };
 
+  const handlePayBoletoWithPix = (boleto: GestaoBoleto) => {
+    // 1. Atualiza o status do boleto para PAGO
+    const updatedBoletos = boletos.map(b => {
+      if (b.id === boleto.id) {
+        return {
+          ...b,
+          status: 'PAGO' as const,
+          paidAt: new Date().toLocaleDateString('pt-BR')
+        };
+      }
+      return b;
+    });
+    setBoletos(updatedBoletos);
+    saveStoredData('boletos', updatedBoletos);
+
+    // 2. Registra o pagamento em payments para o extrato
+    const newPayment: GestaoPayment = {
+      id: `pay-${Date.now()}`,
+      unitName: boleto.unitName,
+      tenantName: boleto.tenantName,
+      ownerName: boleto.ownerName,
+      competence: '09/2026',
+      expectedAmount: boleto.amount,
+      receivedAmount: boleto.amount,
+      adminFeeAmount: Math.round(boleto.amount * 0.10),
+      expensesDeducted: 0,
+      transferredAmount: Math.round(boleto.amount * 0.90),
+      status: 'RECEBIDO_PENDENTE_REPASSE',
+      receivedDate: new Date().toLocaleDateString('pt-BR'),
+    };
+    const updatedPayments = [newPayment, ...payments];
+    setPayments(updatedPayments);
+    saveStoredData('payments', updatedPayments);
+
+    alert(`✅ Pagamento de R$ ${boleto.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} confirmado via PIX com sucesso!\n\nSeu comprovante foi emitido e o boleto já consta como QUITADO no sistema.`);
+  };
+
   const handleCreateTenantTicket = (e: React.FormEvent) => {
     e.preventDefault();
     if (!ticketTitle) return;
@@ -157,7 +209,7 @@ export default function PortalUnificadoPage() {
     setIsNewTicketModalOpen(false);
     setTicketTitle('');
     setTicketDescription('');
-    alert('Chamado de manutenção aberto com sucesso! A equipe técnica analisará a solicitação.');
+    alert('Chamado de manutenção aberto com sucesso! A equipe técnica do condomínio já foi notificada.');
   };
 
   const handlePasswordChange = (e: React.FormEvent) => {
@@ -178,19 +230,44 @@ export default function PortalUnificadoPage() {
     window.location.href = '/login';
   };
 
-  // Filtered views based on mode
-  // Owner view: properties owned by Eduardo Silveira Ramos or Mariana Castro
-  const ownerUnits = units.filter(u => u.ownerName.includes('Eduardo') || u.ownerName.includes('Mariana'));
+  // Filtered views based on mode and session
+  const currentUserName = session?.user?.name || '';
+  const currentUserEmail = session?.user?.email || '';
+
+  // Owner view
+  const userOwnedUnits = units.filter(u => 
+    (currentUserEmail && u.ownerEmail.toLowerCase() === currentUserEmail.toLowerCase()) ||
+    (currentUserName && u.ownerName.toLowerCase().includes(currentUserName.toLowerCase()))
+  );
+  const ownerUnits = userOwnedUnits.length > 0 ? userOwnedUnits : units.filter(u => u.ownerName.includes('Eduardo') || u.ownerName.includes('Mariana'));
   const ownerBoletos = boletos;
-  const ownerPayments = payments.filter(p => p.ownerName.includes('Eduardo') || p.ownerName.includes('Mariana'));
+  const ownerPayments = payments;
   const ownerMaintenances = maintenances;
   const ownerDocuments = documents.filter(d => d.targetRole === 'TODOS' || d.targetRole === 'PROPRIETARIO');
 
-  // Tenant view: Lucas Ferreira (Apto 204)
-  const tenantContract = contracts.find(c => c.tenantName.includes('Lucas')) || contracts[0];
-  const tenantOpenBoletos = boletos.filter(b => b.tenantName.includes('Lucas') && (b.status === 'EM_ABERTO' || b.status === 'VENCIDO'));
-  const tenantPaidBoletos = boletos.filter(b => b.tenantName.includes('Lucas') && b.status === 'PAGO');
-  const tenantMaintenances = maintenances.filter(m => m.requestedBy.includes('Lucas'));
+  // Tenant view
+  const tenantContract = contracts.find(c => 
+    (currentUserEmail && c.tenantEmail.toLowerCase() === currentUserEmail.toLowerCase()) ||
+    (currentUserName && c.tenantName.toLowerCase().includes(currentUserName.toLowerCase())) ||
+    c.tenantName.includes('Lucas')
+  ) || contracts[0];
+
+  const tenantOpenBoletos = boletos.filter(b => 
+    ((currentUserName && b.tenantName.toLowerCase().includes(currentUserName.toLowerCase())) || b.tenantName.includes('Lucas') || b.tenantName.includes('TechSolutions')) &&
+    (b.status === 'EM_ABERTO' || b.status === 'VENCIDO')
+  );
+
+  const tenantPaidBoletos = boletos.filter(b => 
+    ((currentUserName && b.tenantName.toLowerCase().includes(currentUserName.toLowerCase())) || b.tenantName.includes('Lucas') || b.tenantName.includes('TechSolutions')) &&
+    b.status === 'PAGO'
+  );
+
+  const tenantMaintenances = maintenances.filter(m => 
+    (currentUserName && m.requestedBy.toLowerCase().includes(currentUserName.toLowerCase())) ||
+    m.requestedBy.includes('Lucas') ||
+    m.requestedBy.includes('TechSolutions')
+  );
+
   const tenantDocuments = documents.filter(d => d.targetRole === 'TODOS' || d.targetRole === 'INQUILINO');
 
   // Tab definitions per persona (matching diagram exactly)
@@ -224,75 +301,61 @@ export default function PortalUnificadoPage() {
   return (
     <div className="min-h-screen bg-surface/50 pb-20">
       
-      {/* Top Demo Mode Switcher Bar */}
-      <div className="bg-text-primary text-white text-xs px-4 py-2.5 shadow-md">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-text-secondary">Visão do Portal:</span>
-            <div className="inline-flex rounded-xl p-1 bg-white/10 border border-white/20">
-              <button
-                onClick={() => { setPortalMode('OWNER'); setActiveTab('dashboard'); }}
-                className={`px-3 py-1 rounded-lg font-black text-xs transition-all flex items-center gap-1.5 ${
-                  portalMode === 'OWNER' ? 'bg-brand-lime text-background shadow' : 'text-white/80 hover:text-white'
-                }`}
-              >
-                <Building2 className="w-3.5 h-3.5" /> Portal do Proprietário (Somente Leitura)
-              </button>
-              <button
-                onClick={() => { setPortalMode('TENANT'); setActiveTab('dashboard'); }}
-                className={`px-3 py-1 rounded-lg font-black text-xs transition-all flex items-center gap-1.5 ${
-                  portalMode === 'TENANT' ? 'bg-brand-lime text-background shadow' : 'text-white/80 hover:text-white'
-                }`}
-              >
-                <Home className="w-3.5 h-3.5" /> Portal do Inquilino (Leitura + Chamados)
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 text-xs font-bold text-white/80">
-            <Link href="/painel" className="hover:text-brand-lime transition-colors flex items-center gap-1">
-              <span>Painel Admin (/painel)</span>
-            </Link>
-            <button onClick={handleLogout} className="hover:text-red-400 transition-colors flex items-center gap-1">
-              <LogOut className="w-3.5 h-3.5" /> Sair
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Main Container */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
-        {/* Portal Header */}
+        {/* Portal Official Header */}
         <div className="p-8 rounded-2xl bg-white border border-border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-surface border border-brand-lime/40 flex items-center justify-center font-black text-xl text-brand-lime shadow-glow-lime">
+            <div className="w-14 h-14 rounded-2xl bg-brand-lime text-white flex items-center justify-center font-black text-xl shadow-md">
               i7
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-black text-text-primary">
-                  {portalMode === 'OWNER' ? 'Portal do Proprietário' : 'Portal do Inquilino'}
+                  {portalMode === 'OWNER' ? 'Área do Proprietário' : 'Área do Inquilino'}
                 </h1>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-brand-lime/15 text-brand-lime border border-brand-lime/30">
-                  {portalMode === 'OWNER' ? 'Somente Leitura' : 'Leitura + Chamados'}
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3 text-emerald-600" /> Ambiente Seguro
                 </span>
               </div>
               <p className="text-xs text-text-secondary mt-1">
                 {portalMode === 'OWNER' 
-                  ? 'Acompanhe ocupação, contratos, boletos, repasses líquidos por competência e relatórios.' 
-                  : 'Consulte seu contrato, emita a 2ª via de boletos com PIX, abra chamados com fotos e leia comunicados.'}
+                  ? 'Acompanhe a rentabilidade do seu patrimônio, ocupação das unidades, contratos e repasses líquidos.' 
+                  : 'Consulte seu contrato de locação, 2ª via de faturas com PIX e acompanhe chamados técnicos.'}
               </p>
             </div>
           </div>
 
-          <div className="text-right text-xs">
-            <div className="font-bold text-text-primary">
-              {portalMode === 'OWNER' ? 'Eduardo Silveira Ramos' : 'Lucas Ferreira'}
+          <div className="flex items-center gap-4">
+            {session?.user?.role === 'ADMIN' && (
+              <Link 
+                href="/painel" 
+                className="px-3.5 py-2 rounded-xl bg-surface border border-border hover:border-brand-lime text-xs font-bold text-text-primary transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                <span>← Painel de Gestão</span>
+              </Link>
+            )}
+
+            <div className="text-right text-xs">
+              <div className="font-bold text-text-primary">
+                {session?.user?.name || (portalMode === 'OWNER' ? 'Carlos Alberto Silva' : 'Mariana Costa Tech')}
+              </div>
+              <div className="text-text-secondary text-[11px]">
+                {session?.user?.email || (portalMode === 'OWNER' ? 'proprietario@i7.com.br' : 'locatario@i7.com.br')}
+              </div>
+              <div className="text-[10px] text-emerald-600 font-bold mt-0.5">
+                ● Conta Ativa
+              </div>
             </div>
-            <div className="text-text-secondary text-[11px]">
-              {portalMode === 'OWNER' ? 'eduardo.silveira@email.com' : 'lucas.ferreira@gmail.com'}
-            </div>
+
+            <button 
+              onClick={handleLogout}
+              title="Encerrar Sessão"
+              className="p-2.5 rounded-xl bg-surface border border-border hover:border-red-300 hover:text-red-500 text-text-secondary transition-all"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
@@ -450,7 +513,23 @@ export default function PortalUnificadoPage() {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        onClick={() => setViewingBoleto(tenantOpenBoletos[0])}
+                        className="px-4 py-2.5 rounded-xl bg-surface border border-border text-text-primary text-xs font-bold hover:border-brand-lime flex items-center gap-2 transition-all shadow-sm"
+                      >
+                        <FileText className="w-4 h-4 text-brand-lime" />
+                        <span>Abrir Boleto Bancário</span>
+                      </button>
+
+                      <button
+                        onClick={() => handlePayBoletoWithPix(tenantOpenBoletos[0])}
+                        className="px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700 shadow-md flex items-center gap-1.5 transition-all"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Pagar com PIX (Baixa Imediata)</span>
+                      </button>
+
                       <button
                         onClick={() => handleCopy(tenantOpenBoletos[0].pixCode)}
                         className="px-4 py-2.5 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow flex items-center gap-2 transition-all"
@@ -479,40 +558,107 @@ export default function PortalUnificadoPage() {
         {/* ==================================================================== */}
         {activeTab === 'propriedades' && (
           <div className="space-y-6">
-            <h2 className="text-base font-black text-text-primary">
-              Prédios e Salas sob sua Titularidade
-            </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-base font-black text-text-primary">
+                  Propriedades & Imóveis Cadastrados
+                </h2>
+                <p className="text-xs text-text-secondary mt-0.5">
+                  Acompanhe seus imóveis locados, anúncios publicados e o parecer das <strong>avaliações gratuitas</strong>.
+                </p>
+              </div>
+
+              <Link
+                href="/anunciar"
+                className="px-4 py-2.5 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow flex items-center gap-1.5 self-start sm:self-auto"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Cadastrar Imóvel para Avaliação</span>
+              </Link>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {ownerUnits.map(unit => (
-                <div key={unit.id} className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-[10px] font-black uppercase text-brand-lime">{unit.type} • {unit.floor}</span>
-                      <h3 className="text-lg font-black text-text-primary mt-0.5">{unit.unitNumber}</h3>
-                      <p className="text-xs text-text-secondary">{unit.buildingName}</p>
-                    </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-700">
-                      {unit.status}
-                    </span>
-                  </div>
+              {ownerUnits.map(unit => {
+                const isPending = unit.status === 'PENDENTE_AVALIACAO';
+                const isRejected = unit.status === 'REPROVADO';
+                const isAvailable = unit.status === 'DISPONIVEL';
 
-                  <div className="p-4 rounded-xl bg-surface border border-border space-y-2 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">Inquilino Atual:</span>
-                      <span className="font-bold text-text-primary">{unit.tenantName}</span>
+                return (
+                  <div 
+                    key={unit.id} 
+                    className={`p-6 rounded-2xl bg-white border shadow-sm space-y-4 ${
+                      isPending ? 'border-2 border-amber-300 bg-amber-50/20' : 'border-border'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <span className="text-[10px] font-black uppercase text-brand-lime">{unit.type} • {unit.floor}</span>
+                        <h3 className="text-lg font-black text-text-primary mt-0.5">{unit.unitNumber}</h3>
+                        <p className="text-xs text-text-secondary">{unit.buildingName}</p>
+                      </div>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                        unit.status === 'LOCADO'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : isAvailable
+                          ? 'bg-blue-100 text-blue-700'
+                          : isPending
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                          : 'bg-red-100 text-red-700'
+                      }`}>
+                        {isPending ? 'EM AVALIAÇÃO' : isAvailable ? 'ANÚNCIO ATIVO' : unit.status}
+                      </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">Aluguel Contratual:</span>
-                      <span className="font-bold text-text-primary">R$ {unit.rentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+
+                    <div className="p-4 rounded-xl bg-surface border border-border space-y-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-text-secondary">Inquilino Atual:</span>
+                        <span className="font-bold text-text-primary">{unit.tenantName || 'Sem inquilino (Disponível)'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-text-secondary">{isPending ? 'Valor Pretendido:' : 'Aluguel Contratual:'}</span>
+                        <span className="font-bold text-text-primary">R$ {unit.rentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-text-secondary">Condomínio + IPTU:</span>
+                        <span className="font-bold text-text-primary">R$ {(unit.condoValue + unit.iptuValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">Condomínio + IPTU:</span>
-                      <span className="font-bold text-text-primary">R$ {(unit.condoValue + unit.iptuValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                    </div>
+
+                    {/* Feedback do Administrador se houver */}
+                    {unit.adminFeedback && (
+                      <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 space-y-1">
+                        <strong className="block text-emerald-900 font-black">
+                          Parecer da Equipe Técnica i7:
+                        </strong>
+                        <p className="text-emerald-800 leading-relaxed">{unit.adminFeedback}</p>
+                      </div>
+                    )}
+
+                    {/* Aviso de Aguardando Avaliação */}
+                    {isPending && (
+                      <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-950 space-y-1">
+                        <strong className="block text-amber-900 font-black">
+                          Aguardando Parecer do Administrador
+                        </strong>
+                        <p className="text-amber-800 leading-relaxed">
+                          Nossa equipe técnica está analisando a documentação e o valor de mercado. Assim que aprovado pelo painel, o anúncio entrará no ar automaticamente!
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Link para o anúncio no site se estiver aprovado */}
+                    {isAvailable && (
+                      <Link
+                        href="/imoveis"
+                        className="w-full py-2.5 rounded-xl bg-surface border border-border hover:border-brand-lime text-text-primary font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 text-brand-lime" />
+                        <span>Ver Anúncio Publicado no Site</span>
+                      </Link>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -682,7 +828,23 @@ export default function PortalUnificadoPage() {
                           Pague instantaneamente via PIX ou copie a linha digitável do código de barras bancário.
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            onClick={() => setViewingBoleto(b)}
+                            className="px-3.5 py-2 rounded-xl bg-surface border border-border text-text-primary text-xs font-bold hover:border-brand-lime flex items-center gap-1.5 transition-all shadow-sm"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-brand-lime" />
+                            <span>Abrir Boleto</span>
+                          </button>
+
+                          <button
+                            onClick={() => handlePayBoletoWithPix(b)}
+                            className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700 shadow flex items-center gap-1.5"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Pagar com PIX</span>
+                          </button>
+
                           <button
                             onClick={() => handleCopy(b.pixCode)}
                             className="px-4 py-2 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow flex items-center gap-1.5"
@@ -971,22 +1133,20 @@ export default function PortalUnificadoPage() {
                       {ann.content}
                     </p>
 
-                    {portalMode === 'TENANT' && (
-                      <div className="pt-3 border-t border-border flex items-center justify-between">
-                        {hasRead ? (
-                          <span className="text-xs text-emerald-700 font-bold flex items-center gap-1.5">
-                            <CheckCircle2 className="w-4 h-4" /> Você confirmou a leitura deste comunicado
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleConfirmReadAnnouncement(ann.id)}
-                            className="px-4 py-2 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow flex items-center gap-1.5"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Confirmar Leitura
-                          </button>
-                        )}
-                      </div>
-                    )}
+                    <div className="pt-3 border-t border-border flex items-center justify-between">
+                      {hasRead ? (
+                        <span className="text-xs text-emerald-700 font-bold flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4" /> Você confirmou a leitura deste comunicado
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleConfirmReadAnnouncement(ann.id)}
+                          className="px-4 py-2 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow flex items-center gap-1.5"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Confirmar Leitura
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -1187,6 +1347,157 @@ export default function PortalUnificadoPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* ================= MODAL: VISUALIZADOR DE BOLETO BANCÁRIO ============ */}
+      {/* ==================================================================== */}
+      {viewingBoleto && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-border max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6 my-8 print:p-0 print:border-none print:shadow-none">
+            {/* Topo / Barra de Ações (oculta na impressão) */}
+            <div className="flex items-center justify-between pb-4 border-b border-border print:hidden">
+              <div className="flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-brand-lime" />
+                <h3 className="text-base font-black text-text-primary">Boleto de Cobrança Bancária</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-3 py-1.5 rounded-xl bg-surface border border-border hover:border-brand-lime text-text-primary text-xs font-bold flex items-center gap-1.5 transition-colors"
+                >
+                  <Printer className="w-3.5 h-3.5 text-brand-lime" />
+                  <span>Imprimir / Salvar PDF</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewingBoleto(null)}
+                  className="p-1.5 rounded-xl text-text-secondary hover:bg-surface"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Boleto FEBRABAN Oficial */}
+            <div className="border-2 border-dashed border-gray-300 p-5 rounded-xl space-y-4 font-sans text-xs text-gray-800 bg-white">
+              {/* Recibo do Pagador / Cabeçalho */}
+              <div className="flex items-center justify-between border-b-2 border-black pb-2">
+                <div className="flex items-center gap-3">
+                  <span className="font-black text-lg text-emerald-800 tracking-wider">i7 BANCO / ASAAS</span>
+                  <span className="font-bold text-sm px-2 border-l-2 border-r-2 border-black">033-7</span>
+                </div>
+                <div className="font-mono text-xs font-black tracking-wide text-gray-900 break-all text-right">
+                  {viewingBoleto.barCode}
+                </div>
+              </div>
+
+              {/* Grade de Dados Principais */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 border-b border-gray-300 pb-3 text-[11px]">
+                <div>
+                  <div className="text-[10px] text-gray-500 font-bold uppercase">Beneficiário</div>
+                  <div className="font-bold text-gray-900">i7 Inteligência Imobiliária S.A.</div>
+                  <div className="text-[10px] text-gray-500">CNPJ: 45.123.890/0001-99</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-gray-500 font-bold uppercase">Agência / Código Beneficiário</div>
+                  <div className="font-bold text-gray-900">0001 / 3bb1823d-asaas</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-gray-500 font-bold uppercase">Vencimento</div>
+                  <div className="font-black text-red-600 text-xs">{viewingBoleto.dueDate}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-gray-500 font-bold uppercase">Valor do Documento</div>
+                  <div className="font-black text-gray-900 text-sm">
+                    R$ {viewingBoleto.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Dados do Sacado / Inquilino */}
+              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-[11px] space-y-1">
+                <div className="text-[10px] text-gray-500 font-bold uppercase">Pagador (Sacado)</div>
+                <div className="font-bold text-gray-900">{viewingBoleto.tenantName}</div>
+                <div className="text-gray-600">Unidade: {viewingBoleto.unitName}</div>
+                <div className="text-gray-600">Proprietário: {viewingBoleto.ownerName}</div>
+              </div>
+
+              {/* Instruções de Pagamento */}
+              <div className="p-3 bg-amber-50/60 rounded-lg border border-amber-200 text-[11px] text-gray-700 space-y-1">
+                <div className="font-bold text-amber-900">Instruções de Pagamento:</div>
+                <p>• Pagável em qualquer banco, casa lotérica ou internet banking até a data de vencimento.</p>
+                <p>• Após o vencimento, cobrar multa de 10% e juros de mora de 1% ao mês.</p>
+                <p>• Para quitação e baixa imediata em segundos, pague apontando a câmera para o QR Code PIX abaixo.</p>
+              </div>
+
+              {/* Bloco PIX & Código de Barras */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-200">
+                <div className="space-y-1 text-center sm:text-left flex-1">
+                  <div className="text-[10px] font-bold text-gray-500 uppercase">Pague com PIX Copia e Cola:</div>
+                  <div className="font-mono text-[10px] text-gray-700 bg-gray-100 p-2 rounded max-w-sm break-all">
+                    {viewingBoleto.pixCode}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(viewingBoleto.pixCode)}
+                    className="mt-1 text-[11px] font-bold text-brand-lime hover:underline inline-flex items-center gap-1"
+                  >
+                    {copiedCode === viewingBoleto.pixCode ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedCode === viewingBoleto.pixCode ? 'Chave PIX copiada!' : 'Copiar Chave PIX'}</span>
+                  </button>
+                </div>
+
+                {/* Código de Barras Gráfico Simulado */}
+                <div className="text-center">
+                  <div className="h-12 w-48 mx-auto flex items-stretch gap-[2px] bg-white p-1">
+                    {[3,1,2,4,1,3,2,1,4,2,3,1,2,1,4,2,3,1,2,4,1,3,2,1,3,2,4,1,2].map((w, idx) => (
+                      <div key={idx} className="bg-black" style={{ width: `${w * 2}px` }} />
+                    ))}
+                  </div>
+                  <span className="font-mono text-[9px] text-gray-500 tracking-wider">AUTENTICAÇÃO MECÂNICA</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Ações do Rodapé (ocultas na impressão) */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 print:hidden">
+              <button
+                type="button"
+                onClick={() => handleCopy(viewingBoleto.barCode)}
+                className="px-4 py-2.5 rounded-xl bg-surface border border-border text-xs font-bold text-text-primary hover:border-brand-lime flex items-center gap-1.5"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>{copiedCode === viewingBoleto.barCode ? 'Código Copiado!' : 'Copiar Linha Digitável'}</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                {viewingBoleto.status === 'EM_ABERTO' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const b = viewingBoleto;
+                      setViewingBoleto(null);
+                      handlePayBoletoWithPix(b);
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700 shadow flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Pagar com PIX (Baixa Imediata)</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setViewingBoleto(null)}
+                  className="px-4 py-2.5 rounded-xl bg-surface text-text-secondary text-xs font-bold hover:bg-surface-hover"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

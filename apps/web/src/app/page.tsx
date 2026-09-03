@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, MapPin, Building, ShieldCheck, Sparkles, KeyRound, ArrowRight, Heart, Video } from 'lucide-react';
+import { Search, MapPin, Building, ShieldCheck, Sparkles, KeyRound, ArrowRight, Heart, Calendar } from 'lucide-react';
 import { fetchProperties } from '@/lib/api';
 import { PropertyDTO } from '@i7/types';
 import { AddressAutocomplete } from '@/components/AddressAutocomplete';
@@ -157,10 +157,10 @@ export default function HomePage() {
 
           <div className="p-8 rounded-3xl glass-card flex flex-col items-center text-center border border-border/60 hover:border-brand-lime/30 transition-all shadow-sm">
             <div className="w-16 h-16 rounded-full bg-lime-50 flex items-center justify-center text-lime-600 mb-6 shadow-inner">
-              <Video className="w-8 h-8" />
+              <Calendar className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-text-primary">Visitas Online</h3>
-            <p className="text-base text-text-secondary mt-3 leading-relaxed">Conheça o imóvel em detalhes sem precisar sair de casa.</p>
+            <h3 className="text-xl font-bold text-text-primary">Visitas Presenciais</h3>
+            <p className="text-base text-text-secondary mt-3 leading-relaxed">Agendamento ágil com corretor credenciado e atendimento exclusivo no local.</p>
           </div>
 
           <div className="p-8 rounded-3xl glass-card flex flex-col items-center text-center border border-border/60 hover:border-brand-lime/30 transition-all shadow-sm">

@@ -11,7 +11,9 @@ import {
   ArrowLeft, 
   Image as ImageIcon, 
   X,
-  Eye
+  Eye,
+  Filter,
+  Search
 } from 'lucide-react';
 import { GestaoMaintenance, INITIAL_MAINTENANCES, getStoredData, saveStoredData } from '@/lib/gestaoData';
 
@@ -26,6 +28,8 @@ export default function MaintenanceAdminPage() {
   const [maintenances, setMaintenances] = useState<GestaoMaintenance[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<GestaoMaintenance | null>(null);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [priorityFilter, setPriorityFilter] = useState<'ALL' | 'EMERGENCIA' | 'ALTA' | 'MEDIA' | 'BAIXA'>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // New ticket state
   const [newTitle, setNewTitle] = useState('');
@@ -99,10 +103,114 @@ export default function MaintenanceAdminPage() {
         </button>
       </div>
 
+      {/* Barra de Filtros de Prioridade */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl border border-border shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-1.5 text-xs font-black text-text-secondary mr-1">
+            <Filter className="w-4 h-4 text-brand-lime" />
+            <span>Prioridade:</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setPriorityFilter('ALL')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
+              priorityFilter === 'ALL'
+                ? 'bg-brand-lime text-white shadow-sm'
+                : 'bg-surface border border-border text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            Todas ({maintenances.length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPriorityFilter('ALTA')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+              priorityFilter === 'ALTA'
+                ? 'bg-orange-600 text-white shadow-sm'
+                : 'bg-orange-50 border border-orange-200 text-orange-800 hover:bg-orange-100'
+            }`}
+          >
+            <span>🔴 Alta</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white text-orange-800 font-black">
+              {maintenances.filter(m => m.urgency === 'ALTA').length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPriorityFilter('MEDIA')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+              priorityFilter === 'MEDIA'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100'
+            }`}
+          >
+            <span>🟡 Média</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white text-amber-800 font-black">
+              {maintenances.filter(m => m.urgency === 'MEDIA').length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPriorityFilter('BAIXA')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+              priorityFilter === 'BAIXA'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-blue-50 border border-blue-200 text-blue-800 hover:bg-blue-100'
+            }`}
+          >
+            <span>🟢 Baixa</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white text-blue-800 font-black">
+              {maintenances.filter(m => m.urgency === 'BAIXA').length}
+            </span>
+          </button>
+
+          {maintenances.some(m => m.urgency === 'EMERGENCIA') && (
+            <button
+              type="button"
+              onClick={() => setPriorityFilter('EMERGENCIA')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                priorityFilter === 'EMERGENCIA'
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'bg-red-50 border border-red-300 text-red-700 hover:bg-red-100'
+              }`}
+            >
+              <span>🚨 Emergência</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white text-red-700 font-black">
+                {maintenances.filter(m => m.urgency === 'EMERGENCIA').length}
+              </span>
+            </button>
+          )}
+        </div>
+
+        <div className="relative w-full sm:w-64">
+          <Search className="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Buscar por chamado, imóvel..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-surface border border-border text-xs text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-brand-lime"
+          />
+        </div>
+      </div>
+
       {/* Kanban Board Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
         {COLUMNS.map(col => {
-          const colItems = maintenances.filter(m => m.status === col.key);
+          const filteredMaintenances = maintenances.filter(m => {
+            const matchesPriority = priorityFilter === 'ALL' || m.urgency === priorityFilter;
+            const matchesSearch = !searchQuery || 
+              m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              m.unitName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              m.requestedBy.toLowerCase().includes(searchQuery.toLowerCase());
+            return matchesPriority && matchesSearch;
+          });
+
+          const colItems = filteredMaintenances.filter(m => m.status === col.key);
           return (
             <div key={col.key} className={`bg-surface border border-border rounded-2xl p-4 flex flex-col space-y-3 border-t-4 ${col.color}`}>
               <div className="flex items-center justify-between pb-2 border-b border-border/60">

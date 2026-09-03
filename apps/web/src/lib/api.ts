@@ -2,56 +2,109 @@ import { PropertyDTO, UserDTO, VisitDTO, ProposalDTO, PaymentDTO } from '@i7/typ
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
+import { BuildingUnit, INITIAL_UNITS, getStoredData } from './gestaoData';
+
+function getApprovedUnitsAsProperties(): PropertyDTO[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const units = getStoredData<BuildingUnit[]>('units', INITIAL_UNITS);
+    const approved = units.filter(u => u.status === 'DISPONIVEL');
+
+    return approved.map((u, index) => {
+      // Usa estritamente a coordenada selecionada no anúncio pelo proprietário
+      const hasCoords = typeof u.latitude === 'number' && typeof u.longitude === 'number' && !isNaN(u.latitude) && !isNaN(u.longitude) && u.latitude !== 0 && u.longitude !== 0;
+      
+      const exactLat = hasCoords ? u.latitude! : -23.5152 + ((index % 4) * 0.005);
+      const exactLng = hasCoords ? u.longitude! : -47.4526 + ((index % 3) * 0.005);
+
+      return {
+        id: u.id,
+        ownerId: 'owner-i7',
+        title: u.unitNumber,
+        description: u.adminFeedback 
+          ? `[Parecer i7]: ${u.adminFeedback}` 
+          : `Imóvel avaliado e aprovado pela i7 em ${u.buildingName}. Excelente estado de conservação, com ${u.areaSqm}m², ${u.bedrooms || 1} quarto(s) e infraestrutura completa.`,
+        type: (u.type === 'APARTAMENTO' ? 'APARTMENT' : u.type === 'STUDIO' ? 'STUDIO' : 'HOUSE') as any,
+        status: 'PUBLISHED' as any,
+        street: u.street || u.address || u.buildingName,
+        number: '100',
+        neighborhood: u.neighborhood || 'Vila Hortência',
+        city: u.city || 'Sorocaba',
+        state: u.state || 'SP',
+        zipCode: '18000-000',
+        latitude: exactLat,
+        longitude: exactLng,
+        rentPrice: u.rentValue,
+        condoFee: u.condoValue,
+        iptuFee: u.iptuValue,
+        serviceFee: Math.round(u.rentValue * 0.08),
+        totalMonthly: u.rentValue + u.condoValue + u.iptuValue + Math.round(u.rentValue * 0.08),
+        bedrooms: u.bedrooms || 1,
+        bathrooms: u.bathrooms || 1,
+        parkingSpots: u.parkingSpaces || 0,
+        areaSqm: u.areaSqm,
+        furnished: u.furnished || false,
+        petFriendly: u.petFriendly || true,
+        hasVirtualTour: false,
+        media: (u.photos && u.photos.length > 0)
+          ? u.photos.map((url, i) => ({ id: `m-${u.id}-${i}`, propertyId: u.id, url, type: 'PHOTO' as const, order: i }))
+          : [
+              { id: `m-${u.id}-0`, propertyId: u.id, url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1000', type: 'PHOTO' as const, order: 0 }
+            ],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchProperties(params?: Record<string, any>): Promise<PropertyDTO[]> {
   try {
-    const query = new URLSearchParams(params || {}).toString();
-    const res = await fetch(`${API_BASE_URL}/properties?${query}`, { cache: 'no-store' });
-    if (!res.ok) throw new Error('Falha ao buscar imóveis');
-    return await res.json();
+    const dynamicApproved = getApprovedUnitsAsProperties();
+    return [...dynamicApproved, ...MOCK_PROPERTIES];
   } catch (error) {
-    console.warn('API não conectada, utilizando fallback de demonstração i7:', error);
     return MOCK_PROPERTIES;
   }
 }
 
 export async function fetchPropertyById(id: string): Promise<PropertyDTO> {
-  try {
-    const res = await fetch(`${API_BASE_URL}/properties/${id}`, { cache: 'no-store' });
-    if (!res.ok) throw new Error('Imóvel não encontrado');
-    return await res.json();
-  } catch (error) {
-    const found = MOCK_PROPERTIES.find(p => p.id === id);
-    if (found) return found;
-    return MOCK_PROPERTIES[0];
-  }
+  const dynamicApproved = getApprovedUnitsAsProperties();
+  const foundDynamic = dynamicApproved.find(p => p.id === id);
+  if (foundDynamic) return foundDynamic;
+
+  const found = MOCK_PROPERTIES.find(p => p.id === id);
+  if (found) return found;
+  return MOCK_PROPERTIES[0];
 }
 
-// Rich fallback mock data matching i7 schema
+// Imóveis Oficiais de Demonstração na Praça da i7 (Sorocaba - SP)
 export const MOCK_PROPERTIES: PropertyDTO[] = [
   {
     id: 'prop-1',
     ownerId: 'owner-1',
-    title: 'Studio High-Tech em Pinheiros com Varanda Gourmet',
-    description: 'Studio conceito aberto totalmente mobiliado com fechadura digital, automação Alexa e vista panorâmica para o por do sol de Pinheiros. Condomínio com piscina aquecida no rooftop, coworking e lavanderia OMO.',
+    title: 'Studio Conceito no Parque Campolim com Varanda Gourmet',
+    description: 'Studio conceito aberto totalmente mobiliado com fechadura digital, automação Alexa e vista panorâmica para o Parque Campolim. Condomínio com piscina aquecida no rooftop, coworking e lavanderia compartilhada.',
     type: 'STUDIO' as any,
     status: 'PUBLISHED' as any,
-    street: 'Rua dos Pinheiros',
-    number: '850',
-    neighborhood: 'Pinheiros',
-    city: 'São Paulo',
+    street: 'Av. Antônio Carlos Comitre',
+    number: '1200',
+    neighborhood: 'Parque Campolim',
+    city: 'Sorocaba',
     state: 'SP',
-    zipCode: '05422-001',
-    latitude: -23.5645,
-    longitude: -46.6898,
-    rentPrice: 3800,
-    condoFee: 650,
-    iptuFee: 180,
-    serviceFee: 304,
-    totalMonthly: 4934,
+    zipCode: '18047-620',
+    latitude: -23.5285,
+    longitude: -47.4645,
+    rentPrice: 3500,
+    condoFee: 480,
+    iptuFee: 120,
+    serviceFee: 280,
+    totalMonthly: 4380,
     bedrooms: 1,
     bathrooms: 1,
     parkingSpots: 1,
-    areaSqm: 42,
+    areaSqm: 45,
     furnished: true,
     petFriendly: true,
     hasVirtualTour: true,
@@ -67,28 +120,28 @@ export const MOCK_PROPERTIES: PropertyDTO[] = [
   {
     id: 'prop-2',
     ownerId: 'owner-1',
-    title: 'Apartamento de Luxo 3 Dorms no Itaim Bibi com Automação',
-    description: 'Espaçoso apartamento reformado por arquiteto renomado. Possui 3 suítes, ar condicionado split em todos os ambientes, varanda integrada com churrasqueira e 2 vagas demarcadas.',
+    title: 'Apartamento de Alto Padrão 3 Dorms na Vila Hortência',
+    description: 'Espaçoso apartamento próximo à sede corporativa i7 na Vila Hortência. Possui 3 dormitórios sendo 1 suíte, varanda com churrasqueira a carvão e 2 vagas de garagem demarcadas.',
     type: 'APARTMENT' as any,
     status: 'PUBLISHED' as any,
-    street: 'Rua Joaquim Floriano',
-    number: '420',
-    neighborhood: 'Itaim Bibi',
-    city: 'São Paulo',
+    street: 'Rua Cel. Nogueira Padilha',
+    number: '374',
+    neighborhood: 'Vila Hortência',
+    city: 'Sorocaba',
     state: 'SP',
-    zipCode: '04534-002',
-    latitude: -23.5841,
-    longitude: -46.6749,
-    rentPrice: 8500,
-    salePrice: 2400000,
-    condoFee: 1400,
-    iptuFee: 450,
-    serviceFee: 680,
-    totalMonthly: 11030,
+    zipCode: '18020-000',
+    latitude: -23.5152,
+    longitude: -47.4526,
+    rentPrice: 4200,
+    salePrice: 750000,
+    condoFee: 550,
+    iptuFee: 160,
+    serviceFee: 336,
+    totalMonthly: 5246,
     bedrooms: 3,
-    bathrooms: 3,
+    bathrooms: 2,
     parkingSpots: 2,
-    areaSqm: 118,
+    areaSqm: 92,
     furnished: true,
     petFriendly: true,
     hasVirtualTour: true,
@@ -102,27 +155,27 @@ export const MOCK_PROPERTIES: PropertyDTO[] = [
   {
     id: 'prop-3',
     ownerId: 'owner-1',
-    title: 'Casa Minimalista Modernista na Vila Madalena com Jardim',
-    description: 'Casa isolada cercada por verde no coração da Vila Madalena. Iluminação natural abundante, piso em cimento queimado, espaço pet expansivo e energia solar instalada.',
+    title: 'Casa Térrea Moderna no Jardim Emília com Jardim Privativo',
+    description: 'Casa isolada cercada de verde e tranquilidade no Jardim Emília em Sorocaba. Iluminação natural abundante, acabamento em porcelanato e espaço gourmet externo.',
     type: 'HOUSE' as any,
     status: 'PUBLISHED' as any,
-    street: 'Rua Harmonia',
-    number: '1050',
-    neighborhood: 'Vila Madalena',
-    city: 'São Paulo',
+    street: 'Rua Capitão Nascimento Filho',
+    number: '210',
+    neighborhood: 'Jardim Emília',
+    city: 'Sorocaba',
     state: 'SP',
-    zipCode: '05435-001',
-    latitude: -23.5539,
-    longitude: -46.6912,
-    rentPrice: 6200,
+    zipCode: '18031-030',
+    latitude: -23.5180,
+    longitude: -47.4590,
+    rentPrice: 5800,
     condoFee: 0,
-    iptuFee: 320,
-    serviceFee: 496,
-    totalMonthly: 7016,
-    bedrooms: 2,
-    bathrooms: 2,
-    parkingSpots: 1,
-    areaSqm: 140,
+    iptuFee: 210,
+    serviceFee: 464,
+    totalMonthly: 6474,
+    bedrooms: 3,
+    bathrooms: 3,
+    parkingSpots: 2,
+    areaSqm: 160,
     furnished: false,
     petFriendly: true,
     hasVirtualTour: false,
@@ -136,30 +189,30 @@ export const MOCK_PROPERTIES: PropertyDTO[] = [
   {
     id: 'prop-4',
     ownerId: 'owner-1',
-    title: 'Kitnet Tech e Funcional no Jardins perto do Metrô',
-    description: 'Excelente opção para estudantes e jovens profissionais. Totalmente mobiliado com cama baú, cooktop por indução, smart TV e internet fibra dedicada inclusa.',
-    type: 'KITNET' as any,
+    title: 'Imóvel Comercial / Loja no Além Ponte em Sorocaba',
+    description: 'Excelente ponto comercial com fachada envidraçada de alta visibilidade no Além Ponte. Amplo salão principal, copa de apoio, 2 banheiros acessíveis e estacionamento frontal.',
+    type: 'COMMERCIAL' as any,
     status: 'PUBLISHED' as any,
-    street: 'Alameda Santos',
-    number: '1200',
-    neighborhood: 'Jardins',
-    city: 'São Paulo',
+    street: 'Rua Coronel Cavalheiros',
+    number: '145',
+    neighborhood: 'Além Ponte',
+    city: 'Sorocaba',
     state: 'SP',
-    zipCode: '01418-100',
-    latitude: -23.5629,
-    longitude: -46.6548,
-    rentPrice: 2700,
-    condoFee: 390,
-    iptuFee: 90,
-    serviceFee: 216,
-    totalMonthly: 3396,
-    bedrooms: 1,
-    bathrooms: 1,
-    parkingSpots: 0,
-    areaSqm: 28,
-    furnished: true,
-    petFriendly: false,
-    hasVirtualTour: true,
+    zipCode: '18020-010',
+    latitude: -23.5042,
+    longitude: -47.4475,
+    rentPrice: 3200,
+    condoFee: 0,
+    iptuFee: 140,
+    serviceFee: 256,
+    totalMonthly: 3596,
+    bedrooms: 0,
+    bathrooms: 2,
+    parkingSpots: 3,
+    areaSqm: 110,
+    furnished: false,
+    petFriendly: true,
+    hasVirtualTour: false,
     media: [
       { id: 'm8', propertyId: 'prop-4', url: 'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1000', type: 'PHOTO', order: 0 },
     ],

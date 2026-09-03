@@ -12,7 +12,7 @@ import {
   X,
   Trash2
 } from 'lucide-react';
-import { GestaoExpense, INITIAL_EXPENSES, getStoredData, saveStoredData } from '@/lib/gestaoData';
+import { GestaoExpense, INITIAL_EXPENSES, getStoredData, saveStoredData, logAuditEvent } from '@/lib/gestaoData';
 
 export default function DespesasAdminPage() {
   const [expenses, setExpenses] = useState<GestaoExpense[]>([]);
@@ -36,6 +36,7 @@ export default function DespesasAdminPage() {
     e.preventDefault();
     if (!newDescription) return;
 
+    const receipt = newReceipt || `REC-${Math.floor(1000 + Math.random() * 9000)}`;
     const newExp: GestaoExpense = {
       id: `exp-${Date.now()}`,
       description: newDescription,
@@ -45,22 +46,38 @@ export default function DespesasAdminPage() {
       amount: Number(newAmount),
       date: new Date().toLocaleDateString('pt-BR'),
       status: 'LANCADO',
-      receiptNumber: newReceipt || `REC-${Math.floor(1000 + Math.random() * 9000)}`
+      receiptNumber: receipt
     };
 
     const updated = [newExp, ...expenses];
     setExpenses(updated);
     saveStoredData('expenses', updated);
+
+    logAuditEvent(
+      'LANCAMENTO_DESPESA',
+      'Despesas Operacionais',
+      `Despesa '${newDescription}' de R$ ${Number(newAmount).toLocaleString('pt-BR')} lançada para ${newOwner} (${newUnit})`
+    );
+
     setIsModalOpen(false);
     setNewDescription('');
     setNewReceipt('');
   };
 
   const handleDeleteExpense = (id: string) => {
+    const target = expenses.find(e => e.id === id);
     if (confirm('Deseja cancelar este lançamento de despesa?')) {
       const updated = expenses.filter(e => e.id !== id);
       setExpenses(updated);
       saveStoredData('expenses', updated);
+
+      if (target) {
+        logAuditEvent(
+          'CANCELAMENTO_DESPESA',
+          'Despesas Operacionais',
+          `Cancelamento de despesa '${target.description}' de R$ ${target.amount.toLocaleString('pt-BR')}`
+        );
+      }
     }
   };
 

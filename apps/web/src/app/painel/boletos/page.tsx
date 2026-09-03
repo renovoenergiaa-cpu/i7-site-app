@@ -16,27 +16,52 @@ import {
   Copy, 
   Check, 
   X,
-  FileText
+  FileText,
+  Eye,
+  Printer
 } from 'lucide-react';
-import { GestaoBoleto, INITIAL_BOLETOS, getStoredData, saveStoredData } from '@/lib/gestaoData';
+import { 
+  GestaoBoleto, 
+  INITIAL_BOLETOS, 
+  GestaoContract, 
+  INITIAL_CONTRACTS, 
+  getStoredData, 
+  saveStoredData, 
+  logAuditEvent 
+} from '@/lib/gestaoData';
 
 export default function BoletosAdminPage() {
   const [boletos, setBoletos] = useState<GestaoBoleto[]>([]);
+  const [contracts, setContracts] = useState<GestaoContract[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [viewingBoleto, setViewingBoleto] = useState<GestaoBoleto | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   // Form for new boleto
-  const [newUnit, setNewUnit] = useState('Sala 101 - Paulista Corporate');
-  const [newTenant, setNewTenant] = useState('TechSolutions Brasil Ltda');
+  const [selectedContractId, setSelectedContractId] = useState('');
+  const [newUnit, setNewUnit] = useState('Sala 101 - Edifício Paulista Corporate');
+  const [newTenant, setNewTenant] = useState('Lucas Mendes Ferreira');
   const [newOwner, setNewOwner] = useState('Eduardo Silveira Ramos');
-  const [newAmount, setNewAmount] = useState(6500);
-  const [newDueDate, setNewDueDate] = useState('10/09/2026');
+  const [newAmount, setNewAmount] = useState(5630);
+  const [newDueDate, setNewDueDate] = useState('10/10/2026');
 
   useEffect(() => {
     setBoletos(getStoredData('boletos', INITIAL_BOLETOS));
+    setContracts(getStoredData('contracts', INITIAL_CONTRACTS));
   }, []);
+
+  const handleContractSelect = (cntId: string) => {
+    setSelectedContractId(cntId);
+    const contract = contracts.find(c => c.id === cntId);
+    if (contract) {
+      setNewUnit(contract.unitName);
+      setNewTenant(contract.tenantName);
+      setNewOwner(contract.ownerName);
+      setNewAmount(contract.monthlyAmount);
+    }
+  };
 
   const handleCopy = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -61,9 +86,10 @@ export default function BoletosAdminPage() {
 
   const handleEmitBoleto = (e: React.FormEvent) => {
     e.preventDefault();
+    const code = `BOL-${Math.floor(1000 + Math.random() * 9000)}`;
     const newBol: GestaoBoleto = {
       id: `bol-${Date.now()}`,
-      code: `BOL-${Math.floor(1000 + Math.random() * 9000)}`,
+      code,
       unitName: newUnit,
       tenantName: newTenant,
       ownerName: newOwner,
@@ -78,6 +104,13 @@ export default function BoletosAdminPage() {
     const updated = [newBol, ...boletos];
     setBoletos(updated);
     saveStoredData('boletos', updated);
+
+    logAuditEvent(
+      'EMISSAO_BOLETO',
+      'Boletos e Cobrança Asaas',
+      `Boleto ${code} de R$ ${Number(newAmount).toLocaleString('pt-BR')} emitido para ${newTenant} (${newUnit})`
+    );
+
     setIsModalOpen(false);
   };
 
@@ -289,6 +322,15 @@ export default function BoletosAdminPage() {
                   )}
 
                   <button
+                    onClick={() => setViewingBoleto(bol)}
+                    title="Visualizar / Imprimir Boleto"
+                    className="px-2.5 py-1 rounded-lg bg-surface border border-border text-text-primary hover:border-brand-lime text-[11px] font-bold inline-flex items-center gap-1"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-brand-lime" />
+                    <span>Visualizar</span>
+                  </button>
+
+                  <button
                     onClick={() => handleCopy(bol.barCode)}
                     title="Copiar Código de Barras"
                     className="p-1.5 rounded-lg bg-surface border border-border text-text-secondary hover:text-text-primary text-[11px]"
@@ -315,9 +357,26 @@ export default function BoletosAdminPage() {
 
             <form onSubmit={handleEmitBoleto} className="space-y-4">
               <div>
+                <label className="block text-xs font-bold text-text-secondary mb-1">Vincular a Contrato Ativo</label>
+                <select
+                  value={selectedContractId}
+                  onChange={(e) => handleContractSelect(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
+                >
+                  <option value="">-- Selecione o Contrato para carregar os dados --</option>
+                  {contracts.filter(c => c.status === 'ATIVO').map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.code} • {c.unitName} ({c.tenantName} - R$ {c.monthlyAmount.toLocaleString('pt-BR')})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold text-text-secondary mb-1">Unidade / Imóvel</label>
                 <input
                   type="text"
+                  required
                   value={newUnit}
                   onChange={(e) => setNewUnit(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
@@ -328,8 +387,20 @@ export default function BoletosAdminPage() {
                 <label className="block text-xs font-bold text-text-secondary mb-1">Inquilino (Sacado)</label>
                 <input
                   type="text"
+                  required
                   value={newTenant}
                   onChange={(e) => setNewTenant(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-text-secondary mb-1">Proprietário (Beneficiário)</label>
+                <input
+                  type="text"
+                  required
+                  value={newOwner}
+                  onChange={(e) => setNewOwner(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
                 />
               </div>
@@ -375,6 +446,132 @@ export default function BoletosAdminPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Visualizador de Boleto Bancário Oficial */}
+      {viewingBoleto && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-border max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6 my-8 print:p-0 print:border-none print:shadow-none">
+            {/* Topo / Barra de Ações (oculta na impressão) */}
+            <div className="flex items-center justify-between pb-4 border-b border-border print:hidden">
+              <div className="flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-brand-lime" />
+                <h3 className="text-base font-black text-text-primary">Boleto Bancário / Fatura FEBRABAN</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-3 py-1.5 rounded-xl bg-surface border border-border hover:border-brand-lime text-text-primary text-xs font-bold flex items-center gap-1.5 transition-colors"
+                >
+                  <Printer className="w-3.5 h-3.5 text-brand-lime" />
+                  <span>Imprimir / Salvar PDF</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewingBoleto(null)}
+                  className="p-1.5 rounded-xl text-text-secondary hover:bg-surface"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Boleto FEBRABAN Oficial */}
+            <div className="border-2 border-dashed border-gray-300 p-5 rounded-xl space-y-4 font-sans text-xs text-gray-800 bg-white">
+              <div className="flex items-center justify-between border-b-2 border-black pb-2">
+                <div className="flex items-center gap-3">
+                  <span className="font-black text-lg text-emerald-800 tracking-wider">i7 BANCO / ASAAS</span>
+                  <span className="font-bold text-sm px-2 border-l-2 border-r-2 border-black">033-7</span>
+                </div>
+                <div className="font-mono text-xs font-black tracking-wide text-gray-900 break-all text-right">
+                  {viewingBoleto.barCode}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 border-b border-gray-300 pb-3 text-[11px]">
+                <div>
+                  <div className="text-[10px] text-gray-500 font-bold uppercase">Beneficiário</div>
+                  <div className="font-bold text-gray-900">i7 Inteligência Imobiliária S.A.</div>
+                  <div className="text-[10px] text-gray-500">CNPJ: 45.123.890/0001-99</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-gray-500 font-bold uppercase">Agência / Código Beneficiário</div>
+                  <div className="font-bold text-gray-900">0001 / 3bb1823d-asaas</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-gray-500 font-bold uppercase">Vencimento</div>
+                  <div className="font-black text-red-600 text-xs">{viewingBoleto.dueDate}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-gray-500 font-bold uppercase">Valor do Documento</div>
+                  <div className="font-black text-gray-900 text-sm">
+                    R$ {viewingBoleto.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-[11px] space-y-1">
+                <div className="text-[10px] text-gray-500 font-bold uppercase">Pagador (Sacado)</div>
+                <div className="font-bold text-gray-900">{viewingBoleto.tenantName}</div>
+                <div className="text-gray-600">Unidade: {viewingBoleto.unitName}</div>
+                <div className="text-gray-600">Proprietário: {viewingBoleto.ownerName}</div>
+              </div>
+
+              <div className="p-3 bg-amber-50/60 rounded-lg border border-amber-200 text-[11px] text-gray-700 space-y-1">
+                <div className="font-bold text-amber-900">Instruções de Pagamento:</div>
+                <p>• Pagável em qualquer banco, casa lotérica ou internet banking até a data de vencimento.</p>
+                <p>• Após o vencimento, cobrar multa de 10% e juros de mora de 1% ao mês.</p>
+                <p>• Para quitação e baixa imediata em segundos, pague apontando a câmera para o QR Code PIX abaixo.</p>
+              </div>
+
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-200">
+                <div className="space-y-1 text-center sm:text-left flex-1">
+                  <div className="text-[10px] font-bold text-gray-500 uppercase">Pague com PIX Copia e Cola:</div>
+                  <div className="font-mono text-[10px] text-gray-700 bg-gray-100 p-2 rounded max-w-sm break-all">
+                    {viewingBoleto.pixCode}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(viewingBoleto.pixCode)}
+                    className="mt-1 text-[11px] font-bold text-brand-lime hover:underline inline-flex items-center gap-1"
+                  >
+                    {copiedCode === viewingBoleto.pixCode ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedCode === viewingBoleto.pixCode ? 'Chave PIX copiada!' : 'Copiar Chave PIX'}</span>
+                  </button>
+                </div>
+
+                <div className="text-center">
+                  <div className="h-12 w-48 mx-auto flex items-stretch gap-[2px] bg-white p-1">
+                    {[3,1,2,4,1,3,2,1,4,2,3,1,2,1,4,2,3,1,2,4,1,3,2,1,3,2,4,1,2].map((w, idx) => (
+                      <div key={idx} className="bg-black" style={{ width: `${w * 2}px` }} />
+                    ))}
+                  </div>
+                  <span className="font-mono text-[9px] text-gray-500 tracking-wider">AUTENTICAÇÃO MECÂNICA</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 print:hidden">
+              <button
+                type="button"
+                onClick={() => handleCopy(viewingBoleto.barCode)}
+                className="px-4 py-2.5 rounded-xl bg-surface border border-border text-xs font-bold text-text-primary hover:border-brand-lime flex items-center gap-1.5"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>{copiedCode === viewingBoleto.barCode ? 'Código Copiado!' : 'Copiar Linha Digitável'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewingBoleto(null)}
+                className="px-4 py-2.5 rounded-xl bg-surface text-text-secondary text-xs font-bold hover:bg-surface-hover"
+              >
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       )}

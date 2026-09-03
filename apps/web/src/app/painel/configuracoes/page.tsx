@@ -12,11 +12,13 @@ import {
   Save, 
   AlertCircle 
 } from 'lucide-react';
-import { GestaoSettings, INITIAL_SETTINGS, getStoredData, saveStoredData } from '@/lib/gestaoData';
+import { GestaoSettings, INITIAL_SETTINGS, getStoredData, saveStoredData, logAuditEvent, resetToCleanBaseline } from '@/lib/gestaoData';
+import { RotateCcw } from 'lucide-react';
 
 export default function ConfiguracoesAdminPage() {
   const [settings, setSettings] = useState<GestaoSettings>(INITIAL_SETTINGS);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
     setSettings(getStoredData('settings', INITIAL_SETTINGS));
@@ -25,8 +27,24 @@ export default function ConfiguracoesAdminPage() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     saveStoredData('settings', settings);
+    logAuditEvent(
+      'ALTERACAO_CONFIGURACOES',
+      'Configurações Gerais',
+      `Atualização dos parâmetros contratuais e dados da administradora (${settings.organizationName})`
+    );
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
+  };
+
+  const handleResetBaseline = () => {
+    if (confirm('Deseja limpar todos os dados de teste e restaurar a base com apenas 1 exemplo de referência oficial?')) {
+      resetToCleanBaseline();
+      setResetSuccess(true);
+      setTimeout(() => {
+        setResetSuccess(false);
+        window.location.reload();
+      }, 1500);
+    }
   };
 
   return (
@@ -223,6 +241,34 @@ export default function ConfiguracoesAdminPage() {
         </div>
 
       </form>
+
+      {/* Card: Gestão de Dados & Baseline Limpa */}
+      <div className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h3 className="text-sm font-black text-text-primary flex items-center gap-2">
+              <RotateCcw className="w-4 h-4 text-brand-lime" /> Manutenção da Base de Dados
+            </h3>
+            <p className="text-xs text-text-secondary">
+              Restaura a plataforma para a base limpa de produção com exatamente <strong>1 exemplo de referência oficial</strong> (Sala 101, Eduardo Silveira e Lucas Mendes), removendo testes e simulações antigas.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleResetBaseline}
+            className="px-4 py-2.5 rounded-xl bg-surface border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold flex items-center gap-1.5 transition-colors whitespace-nowrap"
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> Resetar para 1 Exemplo Limpo
+          </button>
+        </div>
+
+        {resetSuccess && (
+          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4" /> Base restaurada com sucesso com 1 exemplo oficial! Atualizando tela...
+          </div>
+        )}
+      </div>
 
     </div>
   );

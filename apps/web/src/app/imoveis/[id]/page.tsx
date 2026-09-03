@@ -4,7 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { fetchPropertyById } from '@/lib/api';
 import { PropertyDTO } from '@i7/types';
-import { MapPin, Calendar, Video, Send, MessageSquare, ShieldCheck, Heart, Sparkles, Check, ChevronRight, X, User, Lock } from 'lucide-react';
+import { MapPin, Calendar, Send, MessageSquare, ShieldCheck, Heart, Sparkles, Check, ChevronRight, X, User, Lock, Phone } from 'lucide-react';
+import { getCurrentSession } from '@/lib/auth';
+import { ScheduledVisit, INITIAL_VISITS, getStoredData, saveStoredData, logAuditEvent } from '@/lib/gestaoData';
 
 export default function PropertyDetailPage() {
   const params = useParams();
@@ -18,16 +20,25 @@ export default function PropertyDetailPage() {
   const [chatModalOpen, setChatModalOpen] = useState(false);
 
   // Form states
-  const [visitType, setVisitType] = useState<'IN_PERSON' | 'VIDEO_CALL'>('IN_PERSON');
-  const [visitDate, setVisitDate] = useState('2026-08-01T14:00');
+  const [clientName, setClientName] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
+  const [clientNotes, setClientNotes] = useState('');
+  const [visitDate, setVisitDate] = useState('2026-09-10T14:30');
   const [proposalAmount, setProposalAmount] = useState<number>(0);
   const [chatMessages, setChatMessages] = useState<{ sender: string; text: string }[]>([
     { sender: 'Corretor i7', text: 'Olá! Sou o corretor responsável por este imóvel. Como posso ajudar você hoje?' }
   ]);
   const [newMessageText, setNewMessageText] = useState('');
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
+  const [scheduledVisitData, setScheduledVisitData] = useState<ScheduledVisit | null>(null);
 
   useEffect(() => {
+    const session = getCurrentSession();
+    if (session?.user) {
+      setClientName(session.user.name);
+      setClientPhone(session.user.phone || '');
+    }
+
     if (params.id) {
       fetchPropertyById(params.id as string).then(data => {
         setProperty(data);
@@ -47,8 +58,41 @@ export default function PropertyDetailPage() {
 
   const handleScheduleVisit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!clientName || !clientPhone || !visitDate) {
+      alert('Por favor, preencha seu nome, telefone/WhatsApp e o horário desejado.');
+      return;
+    }
+
+    const session = getCurrentSession();
+    const clientEmail = session?.user?.email || 'contato@cliente.com.br';
+
+    const newVisit: ScheduledVisit = {
+      id: `vis-${Date.now()}`,
+      propertyId: property.id,
+      propertyTitle: property.title,
+      propertyAddress: `${property.street}, ${property.number} - ${property.neighborhood}, ${property.city}`,
+      clientName,
+      clientEmail,
+      clientPhone,
+      scheduledDate: visitDate,
+      status: 'PENDENTE_CONFIRMACAO',
+      adminNotes: clientNotes,
+      createdAt: new Date().toLocaleDateString('pt-BR')
+    };
+
+    const currentVisits = getStoredData<ScheduledVisit[]>('scheduled_visits', INITIAL_VISITS);
+    saveStoredData('scheduled_visits', [newVisit, ...currentVisits]);
+
+    logAuditEvent(
+      'SOLICITACAO_VISITA',
+      'Agendamento de Visitas',
+      `Nova visita presencial solicitada para "${property.title}" por ${clientName} (${clientPhone}) para ${visitDate.replace('T', ' às ')}`,
+      clientEmail
+    );
+
+    setScheduledVisitData(newVisit);
     setVisitModalOpen(false);
-    setSuccessBanner('Visita agendada com sucesso! Você receberá a confirmação por SMS e WhatsApp.');
+    setSuccessBanner(`Solicitação de visita presencial enviada com sucesso para nossa equipe! O Administrador i7 foi notificado para confirmação.`);
   };
 
   const handleSendProposal = (e: React.FormEvent) => {
@@ -72,11 +116,28 @@ export default function PropertyDetailPage() {
       
       {/* Success Notification Banner */}
       {successBanner && (
-        <div className="p-4 rounded-xl glass-panel border-brand-lime bg-brand-lime/10 text-brand-lime text-sm font-semibold flex items-center justify-between">
+        <div className="p-4 rounded-xl glass-panel border-brand-lime bg-brand-lime/10 text-brand-lime text-sm font-semibold flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in">
           <div className="flex items-center gap-2">
-            <Check className="w-5 h-5" /> {successBanner}
+            <Check className="w-5 h-5 shrink-0" /> 
+            <span>{successBanner}</span>
           </div>
-          <button onClick={() => setSuccessBanner(null)} className="hover:text-text-primary"><X className="w-4 h-4" /></button>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            {scheduledVisitData && (
+              <a
+                href={`https://wa.me/551130904000?text=${encodeURIComponent(
+                  `Olá! Gostaria de falar sobre a minha solicitação de visita presencial ao imóvel "${property.title}" agendada para ${scheduledVisitData.scheduledDate.replace('T', ' às ')}. Meu nome é ${scheduledVisitData.clientName}.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-2 shadow transition-all shrink-0"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>Conversar no WhatsApp</span>
+              </a>
+            )}
+            <button onClick={() => setSuccessBanner(null)} className="p-1 hover:text-text-primary text-text-muted"><X className="w-4 h-4" /></button>
+          </div>
         </div>
       )}
 
@@ -261,32 +322,37 @@ export default function PropertyDetailPage() {
             </div>
 
             <form onSubmit={handleScheduleVisit} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-text-secondary uppercase">Tipo de Visita</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setVisitType('IN_PERSON')}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all ${
-                      visitType === 'IN_PERSON' ? 'bg-brand-lime text-background border-brand-lime' : 'bg-surface border-border text-text-secondary'
-                    }`}
-                  >
-                    Presencial
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setVisitType('VIDEO_CALL')}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                      visitType === 'VIDEO_CALL' ? 'bg-brand-lime text-background border-brand-lime' : 'bg-surface border-border text-text-secondary'
-                    }`}
-                  >
-                    <Video className="w-3.5 h-3.5" /> Por Vídeo
-                  </button>
-                </div>
+              <div className="p-3 rounded-xl bg-brand-lime/10 border border-brand-lime/30 text-xs text-brand-lime font-bold flex items-center gap-2">
+                <MapPin className="w-4 h-4 shrink-0" />
+                <span>Visita Presencial Oficial (Acompanhada por Especialista Credenciado)</span>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-text-secondary uppercase">Data e Horário</label>
+                <label className="text-xs font-bold text-text-secondary uppercase">Seu Nome Completo *</label>
+                <input 
+                  type="text" 
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  placeholder="Ex: Carlos Alberto Silva"
+                  className="w-full bg-surface-card border border-border rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-lime"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-text-secondary uppercase">WhatsApp / Telefone para Confirmação *</label>
+                <input 
+                  type="text" 
+                  value={clientPhone}
+                  onChange={(e) => setClientPhone(e.target.value)}
+                  placeholder="Ex: (15) 99123-4567"
+                  className="w-full bg-surface-card border border-border rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-lime"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-text-secondary uppercase">Data e Horário Desejados *</label>
                 <input 
                   type="datetime-local" 
                   value={visitDate}
@@ -296,8 +362,19 @@ export default function PropertyDetailPage() {
                 />
               </div>
 
-              <button type="submit" className="w-full py-3 rounded-xl font-bold bg-brand-lime text-background hover:bg-brand-lime-hover shadow-glow-lime">
-                Confirmar Agendamento
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-text-secondary uppercase">Observações (Opcional)</label>
+                <textarea 
+                  rows={2}
+                  value={clientNotes}
+                  onChange={(e) => setClientNotes(e.target.value)}
+                  placeholder="Alguma dúvida ou preferência de horário?"
+                  className="w-full bg-surface-card border border-border rounded-xl p-3 text-xs text-text-primary focus:outline-none focus:border-brand-lime resize-none"
+                />
+              </div>
+
+              <button type="submit" className="w-full py-3.5 rounded-xl font-bold bg-brand-lime text-white hover:bg-brand-lime-hover shadow-md transition-all cursor-pointer">
+                Confirmar Solicitação de Visita
               </button>
             </form>
           </div>

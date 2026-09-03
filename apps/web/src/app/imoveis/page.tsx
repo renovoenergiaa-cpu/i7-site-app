@@ -43,12 +43,14 @@ function SearchPropertiesContent() {
     // Mock prices based on searchMode
     const priceToCompare = searchMode === 'buy' ? p.rentPrice * 180 : p.rentPrice; // Mocking sale price
     
-    // Check neighborhood (handling Autocomplete format: "Street, Neighborhood - City")
+    // Check location (matching street, neighborhood, city and title)
     if (searchNeighborhood) {
-      const searchTerms = searchNeighborhood.toLowerCase().split(/[,-]/).map(t => t.trim());
+      const searchTerms = searchNeighborhood.toLowerCase().split(/[,-]/).map(t => t.trim()).filter(Boolean);
       const matchesLocation = searchTerms.some(term => 
-        p.neighborhood.toLowerCase().includes(term) || 
-        p.city.toLowerCase().includes(term)
+        (p.city && p.city.toLowerCase().includes(term)) ||
+        (p.neighborhood && p.neighborhood.toLowerCase().includes(term)) ||
+        (p.street && p.street.toLowerCase().includes(term)) ||
+        (p.title && p.title.toLowerCase().includes(term))
       );
       if (!matchesLocation) return false;
     }
@@ -347,7 +349,7 @@ function SearchPropertiesContent() {
             <PropertyMap 
               properties={filteredProperties} 
               searchMode={searchMode as 'buy' | 'rent' | 'sell'} 
-              searchQuery={appliedSearchQuery}
+              searchQuery={searchNeighborhood || appliedSearchQuery}
               searchTrigger={searchTrigger}
             />
           )}

@@ -12,6 +12,7 @@
     "@i7/core": "file:../../packages/core",
     "@i7/types": "*",
     "@react-google-maps/api": "^2.20.8",
+    "@supabase/supabase-js": "^2.114.0",
     "clsx": "^2.1.1",
     "framer-motion": "^11.1.9",
     "lucide-react": "^0.378.0",

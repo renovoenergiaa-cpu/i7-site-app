@@ -19,7 +19,9 @@ import {
   CheckCircle2, 
   Clock, 
   TrendingUp,
-  Plus
+  Plus,
+  Calendar,
+  ClipboardCheck
 } from 'lucide-react';
 import { 
   INITIAL_UNITS, 
@@ -27,21 +29,25 @@ import {
   INITIAL_MAINTENANCES, 
   INITIAL_PAYMENTS,
   INITIAL_USERS,
+  INITIAL_VISITS,
   getStoredData,
   BuildingUnit,
   GestaoBoleto,
-  GestaoMaintenance
+  GestaoMaintenance,
+  ScheduledVisit
 } from '@/lib/gestaoData';
 
 export default function AdminDashboardPage() {
   const [units, setUnits] = useState<BuildingUnit[]>([]);
   const [boletos, setBoletos] = useState<GestaoBoleto[]>([]);
   const [maintenances, setMaintenances] = useState<GestaoMaintenance[]>([]);
+  const [visits, setVisits] = useState<ScheduledVisit[]>([]);
 
   useEffect(() => {
     setUnits(getStoredData('units', INITIAL_UNITS));
     setBoletos(getStoredData('boletos', INITIAL_BOLETOS));
     setMaintenances(getStoredData('maintenances', INITIAL_MAINTENANCES));
+    setVisits(getStoredData('scheduled_visits', INITIAL_VISITS));
   }, []);
 
   // Compute metrics
@@ -158,11 +164,60 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+      {/* Alerta de Visitas Presenciais Aguardando Confirmação */}
+      {visits.filter(v => v.status === 'PENDENTE_CONFIRMACAO').length > 0 && (
+        <div className="p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center shrink-0">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-sm text-amber-950 flex items-center gap-2">
+                <span>🔔 Solicitações de Visita Aguardando Confirmação</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-200 text-amber-900">
+                  {visits.filter(v => v.status === 'PENDENTE_CONFIRMACAO').length} Nova(s)
+                </span>
+              </h4>
+              <p className="text-xs text-amber-900 mt-0.5">
+                Há clientes aguardando confirmação de horário ou contato no WhatsApp para visitar imóveis presenciais.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/painel/visitas"
+            className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black shadow flex items-center justify-center gap-2 shrink-0 transition-all"
+          >
+            Gerenciar Visitas & WhatsApp
+          </Link>
+        </div>
+      )}
+
       {/* Quick Navigation Cards Grid */}
       <div className="space-y-4">
         <h2 className="text-base font-black text-text-primary tracking-wide">Módulos de Gestão</h2>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <Link
+            href="/painel/visitas"
+            className="p-5 rounded-2xl bg-white border border-border shadow-sm hover:border-brand-lime hover:shadow-md transition-all group relative overflow-hidden"
+          >
+            <div className="w-10 h-10 rounded-xl bg-surface border border-border flex items-center justify-center text-text-secondary group-hover:text-brand-lime group-hover:border-brand-lime/40 mb-3">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-sm text-text-primary group-hover:text-brand-lime transition-colors">
+                Agendamento de Visitas
+              </h3>
+              {visits.filter(v => v.status === 'PENDENTE_CONFIRMACAO').length > 0 && (
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+              )}
+            </div>
+            <p className="text-xs text-text-secondary mt-1 leading-relaxed">
+              Confirme datas, proponha novos horários e converse com o cliente no WhatsApp.
+            </p>
+          </Link>
+
           <Link
             href="/painel/unidades"
             className="p-5 rounded-2xl bg-white border border-border shadow-sm hover:border-brand-lime hover:shadow-md transition-all group"
@@ -205,6 +260,21 @@ export default function AdminDashboardPage() {
             </h3>
             <p className="text-xs text-text-secondary mt-1 leading-relaxed">
               Vigência, índice de reajuste (IPCA/IGP-M), garantia e multas.
+            </p>
+          </Link>
+
+          <Link
+            href="/painel/vistorias"
+            className="p-5 rounded-2xl bg-white border border-border shadow-sm hover:border-brand-lime hover:shadow-md transition-all group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-surface border border-border flex items-center justify-center text-text-secondary group-hover:text-brand-lime group-hover:border-brand-lime/40 mb-3">
+              <ClipboardCheck className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-sm text-text-primary group-hover:text-brand-lime transition-colors">
+              Vistorias Digitais
+            </h3>
+            <p className="text-xs text-text-secondary mt-1 leading-relaxed">
+              Laudos periciais com fotos datadas, medidores e assinatura digital.
             </p>
           </Link>
 

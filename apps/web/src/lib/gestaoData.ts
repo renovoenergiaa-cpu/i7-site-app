@@ -4,17 +4,35 @@ export interface BuildingUnit {
   id: string;
   buildingName: string;
   unitNumber: string;
-  type: 'SALA' | 'APARTAMENTO' | 'STUDIO' | 'LOJA';
+  type: 'SALA' | 'APARTAMENTO' | 'STUDIO' | 'LOJA' | 'CASA' | 'COMERCIAL';
   floor: string;
   areaSqm: number;
   rentValue: number;
   condoValue: number;
   iptuValue: number;
-  status: 'LOCADO' | 'DISPONIVEL' | 'REFORMA';
+  status: 'LOCADO' | 'DISPONIVEL' | 'PAUSADO' | 'REFORMA' | 'PENDENTE_AVALIACAO' | 'REPROVADO';
   ownerName: string;
   ownerEmail: string;
+  ownerPhone?: string;
   tenantName?: string;
   tenantEmail?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  parkingSpaces?: number;
+  adminFeedback?: string;
+  evaluationDate?: string;
+  photosCount?: number;
+  photos?: string[];
+  latitude?: number;
+  longitude?: number;
+  address?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  street?: string;
+  description?: string;
+  petFriendly?: boolean;
+  furnished?: boolean;
 }
 
 export interface GestaoUser {
@@ -23,7 +41,7 @@ export interface GestaoUser {
   email: string;
   phone: string;
   role: 'ADMIN' | 'OWNER' | 'TENANT';
-  status: 'ATIVO' | 'CONVIDADO' | 'BLOQUEADO';
+  status: 'ATIVO' | 'CONVIDADO' | 'BLOQUEADO' | 'PENDENTE';
   propertiesCount?: number;
   unitAssigned?: string;
   createdAt: string;
@@ -158,212 +176,86 @@ export interface GestaoSettings {
   autoDunningEnabled: boolean;
 }
 
-// Initial Seed Data
+// Initial Seed Data - Sincronizado com Supabase Oficial
 export const INITIAL_UNITS: BuildingUnit[] = [
   {
-    id: 'u-101',
-    buildingName: 'Edifício Paulista Corporate',
-    unitNumber: 'Sala 101',
-    type: 'SALA',
-    floor: '10º Andar',
-    areaSqm: 85,
-    rentValue: 6500,
-    condoValue: 1200,
-    iptuValue: 420,
-    status: 'LOCADO',
-    ownerName: 'Eduardo Silveira Ramos',
-    ownerEmail: 'eduardo.silveira@email.com',
-    tenantName: 'TechSolutions Brasil Ltda',
-    tenantEmail: 'financeiro@techsolutions.com.br'
-  },
-  {
-    id: 'u-102',
-    buildingName: 'Edifício Paulista Corporate',
-    unitNumber: 'Sala 102',
-    type: 'SALA',
-    floor: '10º Andar',
-    areaSqm: 110,
-    rentValue: 8200,
-    condoValue: 1550,
-    iptuValue: 540,
-    status: 'LOCADO',
-    ownerName: 'Eduardo Silveira Ramos',
-    ownerEmail: 'eduardo.silveira@email.com',
-    tenantName: 'Inovação Digital Consultoria',
-    tenantEmail: 'contato@inovacaodigital.com'
-  },
-  {
-    id: 'u-204',
-    buildingName: 'Residencial Faria Lima Prime',
-    unitNumber: 'Apto 204',
+    id: '4601e845-8d85-47e6-a0fd-c4b657468b18',
+    buildingName: 'Residencial Parque Campolim',
+    unitNumber: 'Apto 1204',
     type: 'APARTAMENTO',
-    floor: '2º Andar',
-    areaSqm: 72,
+    floor: '12º Andar',
+    areaSqm: 82,
     rentValue: 4800,
-    condoValue: 890,
-    iptuValue: 280,
+    condoValue: 650,
+    iptuValue: 180,
     status: 'LOCADO',
-    ownerName: 'Mariana Castro',
-    ownerEmail: 'mariana.castro@gmail.com',
-    tenantName: 'Lucas Ferreira',
-    tenantEmail: 'lucas.ferreira@gmail.com'
+    ownerName: 'Carlos Alberto Silva',
+    ownerEmail: 'proprietario@i7.com.br',
+    tenantName: 'Mariana Costa Tech',
+    tenantEmail: 'locatario@i7.com.br'
   },
   {
-    id: 'u-305',
-    buildingName: 'Residencial Faria Lima Prime',
-    unitNumber: 'Studio 305',
-    type: 'STUDIO',
+    id: 'b3106524-17ad-4a9b-a6fa-e9fa93637c31',
+    buildingName: 'Residencial Mangal Gourmet',
+    unitNumber: 'Apto 31',
+    type: 'APARTAMENTO',
     floor: '3º Andar',
-    areaSqm: 40,
-    rentValue: 3400,
-    condoValue: 620,
-    iptuValue: 160,
-    status: 'DISPONIVEL',
-    ownerName: 'Mariana Castro',
-    ownerEmail: 'mariana.castro@gmail.com'
-  },
-  {
-    id: 'u-401',
-    buildingName: 'Edifício Pinheiros Hub',
-    unitNumber: 'Conjunto 401',
-    type: 'SALA',
-    floor: '4º Andar',
-    areaSqm: 140,
-    rentValue: 9500,
-    condoValue: 1900,
-    iptuValue: 680,
-    status: 'LOCADO',
-    ownerName: 'Dr. Paulo Albuquerque',
-    ownerEmail: 'paulo.albuquerque@advocacia.com',
-    tenantName: 'Clínica Bem Estar Médica',
-    tenantEmail: 'atendimento@clinicabemestar.med.br'
-  },
-  {
-    id: 'u-502',
-    buildingName: 'Edifício Pinheiros Hub',
-    unitNumber: 'Conjunto 502',
-    type: 'SALA',
-    floor: '5º Andar',
     areaSqm: 95,
-    rentValue: 7100,
-    condoValue: 1350,
-    iptuValue: 490,
-    status: 'REFORMA',
-    ownerName: 'Dr. Paulo Albuquerque',
-    ownerEmail: 'paulo.albuquerque@advocacia.com'
+    rentValue: 3500,
+    condoValue: 500,
+    iptuValue: 150,
+    status: 'DISPONIVEL',
+    ownerName: 'Carlos Alberto Silva',
+    ownerEmail: 'proprietario@i7.com.br'
   }
 ];
 
 export const INITIAL_USERS: GestaoUser[] = [
   {
-    id: 'usr-1',
+    id: 'c6edc59a-28cd-44a6-b6cb-6b3656d9ab93',
     name: 'Administrador i7',
     email: 'admin@i7.com.br',
-    phone: '(11) 98765-4321',
+    phone: '(11) 3090-4000',
     role: 'ADMIN',
     status: 'ATIVO',
-    createdAt: '10/01/2026'
+    createdAt: '01/09/2026'
   },
   {
-    id: 'usr-2',
-    name: 'Eduardo Silveira Ramos',
-    email: 'eduardo.silveira@email.com',
-    phone: '(11) 99123-4567',
+    id: '6f4eeb4f-dae0-4a02-9e22-93e8223684a6',
+    name: 'Carlos Alberto Silva',
+    email: 'proprietario@i7.com.br',
+    phone: '(15) 99123-4567',
     role: 'OWNER',
     status: 'ATIVO',
     propertiesCount: 2,
-    createdAt: '15/02/2026'
+    createdAt: '01/09/2026'
   },
   {
-    id: 'usr-3',
-    name: 'Mariana Castro',
-    email: 'mariana.castro@gmail.com',
-    phone: '(11) 97890-1234',
-    role: 'OWNER',
-    status: 'ATIVO',
-    propertiesCount: 2,
-    createdAt: '01/03/2026'
-  },
-  {
-    id: 'usr-4',
-    name: 'Dr. Paulo Albuquerque',
-    email: 'paulo.albuquerque@advocacia.com',
-    phone: '(11) 98888-7777',
-    role: 'OWNER',
-    status: 'ATIVO',
-    propertiesCount: 2,
-    createdAt: '12/03/2026'
-  },
-  {
-    id: 'usr-5',
-    name: 'Lucas Ferreira',
-    email: 'lucas.ferreira@gmail.com',
-    phone: '(11) 96543-2109',
+    id: '27302d3f-8afb-4c1e-8ea2-249614051d08',
+    name: 'Mariana Costa Tech',
+    email: 'locatario@i7.com.br',
+    phone: '(15) 99789-1234',
     role: 'TENANT',
     status: 'ATIVO',
-    unitAssigned: 'Apto 204 - Residencial Faria Lima Prime',
-    createdAt: '20/03/2026'
-  },
-  {
-    id: 'usr-6',
-    name: 'TechSolutions Brasil Ltda',
-    email: 'financeiro@techsolutions.com.br',
-    phone: '(11) 3210-9876',
-    role: 'TENANT',
-    status: 'ATIVO',
-    unitAssigned: 'Sala 101 - Paulista Corporate',
-    createdAt: '05/04/2026'
+    unitAssigned: 'Apto 1204 - Residencial Parque Campolim',
+    createdAt: '01/09/2026'
   }
 ];
 
 export const INITIAL_CONTRACTS: GestaoContract[] = [
   {
     id: 'cnt-101',
-    code: 'CTR-2026-089',
-    unitName: 'Sala 101 - Paulista Corporate',
-    tenantName: 'TechSolutions Brasil Ltda',
-    tenantEmail: 'financeiro@techsolutions.com.br',
-    ownerName: 'Eduardo Silveira Ramos',
-    ownerEmail: 'eduardo.silveira@email.com',
-    startDate: '01/05/2025',
-    endDate: '30/04/2027',
-    monthlyAmount: 6500,
-    adjustmentIndex: 'IPCA',
-    guaranteeType: 'SEGURO_FIANCA',
-    finePercent: 10,
-    interestPercent: 1,
-    status: 'ATIVO'
-  },
-  {
-    id: 'cnt-102',
-    code: 'CTR-2026-092',
-    unitName: 'Sala 102 - Paulista Corporate',
-    tenantName: 'Inovação Digital Consultoria',
-    tenantEmail: 'contato@inovacaodigital.com',
-    ownerName: 'Eduardo Silveira Ramos',
-    ownerEmail: 'eduardo.silveira@email.com',
-    startDate: '15/06/2025',
-    endDate: '14/06/2027',
-    monthlyAmount: 8200,
-    adjustmentIndex: 'IGP-M',
-    guaranteeType: 'CAUCAO',
-    finePercent: 10,
-    interestPercent: 1,
-    status: 'ATIVO'
-  },
-  {
-    id: 'cnt-204',
-    code: 'CTR-2026-114',
-    unitName: 'Apto 204 - Residencial Faria Lima Prime',
-    tenantName: 'Lucas Ferreira',
-    tenantEmail: 'lucas.ferreira@gmail.com',
-    ownerName: 'Mariana Castro',
-    ownerEmail: 'mariana.castro@gmail.com',
-    startDate: '01/01/2026',
-    endDate: '31/12/2028',
+    code: 'CTR-2026-001',
+    unitName: 'Apto 1204 - Residencial Parque Campolim',
+    tenantName: 'Mariana Costa Tech',
+    tenantEmail: 'locatario@i7.com.br',
+    ownerName: 'Carlos Alberto Silva',
+    ownerEmail: 'proprietario@i7.com.br',
+    startDate: '01/09/2026',
+    endDate: '31/08/2028',
     monthlyAmount: 4800,
     adjustmentIndex: 'IPCA',
-    guaranteeType: 'FIADOR',
+    guaranteeType: 'SEGURO_FIANCA',
     finePercent: 10,
     interestPercent: 1,
     status: 'ATIVO'
@@ -373,173 +265,52 @@ export const INITIAL_CONTRACTS: GestaoContract[] = [
 export const INITIAL_BOLETOS: GestaoBoleto[] = [
   {
     id: 'bol-01',
-    code: 'BOL-8901',
-    unitName: 'Apto 204 - Faria Lima Prime',
-    tenantName: 'Lucas Ferreira',
-    ownerName: 'Mariana Castro',
-    amount: 5970, // aluguel + condo + iptu
-    dueDate: '10/09/2026',
+    code: 'BOL-2026-01',
+    unitName: 'Apto 1204 - Residencial Parque Campolim',
+    tenantName: 'Mariana Costa Tech',
+    ownerName: 'Carlos Alberto Silva',
+    amount: 5630, // aluguel 4800 + condo 650 + iptu 180
+    dueDate: '10/10/2026',
     status: 'EM_ABERTO',
     dunningStep: 'LEMBRETE_PREVIO',
-    barCode: '34191.79001 01043.510047 91020.150008 5 91230000597000',
-    pixCode: '00020126580014br.gov.bcb.pix0136i7-asaas-pix-chave-faria-lima-20452040000530398654055970.005802BR5915I7 INTELIGENCIA6009SAO PAULO62070503***6304ABCD'
-  },
-  {
-    id: 'bol-02',
-    code: 'BOL-8902',
-    unitName: 'Sala 101 - Paulista Corporate',
-    tenantName: 'TechSolutions Brasil Ltda',
-    ownerName: 'Eduardo Silveira Ramos',
-    amount: 8120,
-    dueDate: '05/09/2026',
-    status: 'EM_ABERTO',
-    dunningStep: 'LEMBRETE_PREVIO',
-    barCode: '34191.79001 01043.510047 91020.150008 5 91230000812000',
-    pixCode: '00020126580014br.gov.bcb.pix0136i7-asaas-pix-chave-paulista-10152040000530398654058120.005802BR5915I7 INTELIGENCIA6009SAO PAULO62070503***6304WXYZ'
-  },
-  {
-    id: 'bol-03',
-    code: 'BOL-8850',
-    unitName: 'Sala 102 - Paulista Corporate',
-    tenantName: 'Inovação Digital Consultoria',
-    ownerName: 'Eduardo Silveira Ramos',
-    amount: 10290,
-    dueDate: '25/08/2026',
-    status: 'VENCIDO',
-    daysOverdue: 8,
-    dunningStep: 'PRIMEIRO_AVISO',
-    barCode: '34191.79001 01043.510047 91020.150008 5 91230001029000',
-    pixCode: '00020126580014br.gov.bcb.pix0136i7-asaas-pix-chave-paulista-102520400005303986540510290.005802BR5915I7 INTELIGENCIA6009SAO PAULO62070503***6304QWER',
-    fineApplied: 1029,
-    interestApplied: 82.32
-  },
-  {
-    id: 'bol-04',
-    code: 'BOL-8790',
-    unitName: 'Apto 204 - Faria Lima Prime',
-    tenantName: 'Lucas Ferreira',
-    ownerName: 'Mariana Castro',
-    amount: 5970,
-    dueDate: '10/08/2026',
-    status: 'PAGO',
-    paidAt: '09/08/2026',
-    paidAmount: 5970,
-    barCode: '34191.79001 01043.510047 91020.150008 5 91230000597000',
-    pixCode: '00020126580014br.gov.bcb.pix0136i7-asaas-pix-quitado'
+    barCode: '34191.79001 01043.510047 91020.150008 5 99410000563000',
+    pixCode: '00020126580014br.gov.bcb.pix0136i7-asaas-pix-campolim-120452040000530398654055630.005802BR5915I7 INTELIGENCIA6009SAO PAULO62070503***6304ABCD'
   }
 ];
 
 export const INITIAL_PAYMENTS: GestaoPayment[] = [
   {
     id: 'pay-01',
-    unitName: 'Apto 204 - Faria Lima Prime',
-    tenantName: 'Lucas Ferreira',
-    ownerName: 'Mariana Castro',
-    competence: '08/2026',
-    expectedAmount: 5970,
-    receivedAmount: 5970,
+    unitName: 'Apto 1204 - Residencial Parque Campolim',
+    tenantName: 'Mariana Costa Tech',
+    ownerName: 'Carlos Alberto Silva',
+    competence: '09/2026',
+    expectedAmount: 5630,
+    receivedAmount: 5630,
     adminFeeAmount: 480, // 10% do aluguel
     expensesDeducted: 0,
-    transferredAmount: 5490,
+    transferredAmount: 5150,
     status: 'CONCILIADO',
-    receivedDate: '09/08/2026',
-    transferDate: '14/08/2026',
-    transferReceiptUrl: 'https://comprovantes.i7.com.br/repasse-202608-204.pdf'
-  },
-  {
-    id: 'pay-02',
-    unitName: 'Sala 101 - Paulista Corporate',
-    tenantName: 'TechSolutions Brasil Ltda',
-    ownerName: 'Eduardo Silveira Ramos',
-    competence: '08/2026',
-    expectedAmount: 8120,
-    receivedAmount: 8120,
-    adminFeeAmount: 650,
-    expensesDeducted: 350, // reparo de fechadura
-    transferredAmount: 7120,
-    status: 'CONCILIADO',
-    receivedDate: '05/08/2026',
-    transferDate: '10/08/2026',
-    transferReceiptUrl: 'https://comprovantes.i7.com.br/repasse-202608-101.pdf'
-  },
-  {
-    id: 'pay-03',
-    unitName: 'Sala 102 - Paulista Corporate',
-    tenantName: 'Inovação Digital Consultoria',
-    ownerName: 'Eduardo Silveira Ramos',
-    competence: '08/2026',
-    expectedAmount: 10290,
-    receivedAmount: 0,
-    adminFeeAmount: 820,
-    expensesDeducted: 0,
-    transferredAmount: 0,
-    status: 'INADIMPLENTE'
+    receivedDate: '05/09/2026',
+    transferDate: '10/09/2026',
+    transferReceiptUrl: 'https://comprovantes.i7.com.br/repasse-202609-1204.pdf'
   }
 ];
 
 export const INITIAL_MAINTENANCES: GestaoMaintenance[] = [
   {
     id: 'mnt-01',
-    title: 'Vazamento sob a pia da copa',
-    unitName: 'Sala 101 - Paulista Corporate',
-    requestedBy: 'TechSolutions Brasil Ltda',
+    title: 'Revisão preventiva do sistema de ar-condicionado',
+    unitName: 'Sala 101 - Edifício Paulista Corporate',
+    requestedBy: 'Lucas Mendes Ferreira',
     requestedByRole: 'TENANT',
-    category: 'HIDRAULICA',
-    urgency: 'ALTA',
-    status: 'EM_ANDAMENTO',
-    estimatedCost: 380,
-    approvedByOwner: true,
-    description: 'Sifão rompido causando gotejamento constante sobre o armário da copa. Técnico agendado para amanhã às 14h.',
-    createdAt: '30/08/2026',
-    photos: [
-      'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=600'
-    ]
-  },
-  {
-    id: 'mnt-02',
-    title: 'Troca de disjuntor do ar-condicionado',
-    unitName: 'Apto 204 - Faria Lima Prime',
-    requestedBy: 'Lucas Ferreira',
-    requestedByRole: 'TENANT',
-    category: 'ELETRICA',
+    category: 'OUTROS',
     urgency: 'MEDIA',
-    status: 'EM_ANALISE',
-    estimatedCost: 220,
-    approvedByOwner: false,
-    description: 'Disjuntor bipolar desarmando ao ligar os 2 aparelhos de ar simultaneamente.',
-    createdAt: '01/09/2026',
-    photos: [
-      'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600'
-    ]
-  },
-  {
-    id: 'mnt-03',
-    title: 'Pintura e retoque após saída de inquilino',
-    unitName: 'Studio 305 - Faria Lima Prime',
-    requestedBy: 'Mariana Castro',
-    requestedByRole: 'OWNER',
-    category: 'PINTURA',
-    urgency: 'BAIXA',
-    status: 'CONCLUIDO',
-    estimatedCost: 850,
+    status: 'EM_ANDAMENTO',
+    estimatedCost: 350,
     approvedByOwner: true,
-    description: 'Serviço finalizado e vistoriado com sucesso em 28/08/2026.',
-    createdAt: '22/08/2026',
-    photos: [
-      'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600'
-    ]
-  },
-  {
-    id: 'mnt-04',
-    title: 'Infiltração leve no teto do banheiro',
-    unitName: 'Conjunto 401 - Pinheiros Hub',
-    requestedBy: 'Clínica Bem Estar Médica',
-    requestedByRole: 'TENANT',
-    category: 'ESTRUTURAL',
-    urgency: 'ALTA',
-    status: 'ABERTO',
-    description: 'Mancha amarelada no gesso do banheiro da recepção.',
-    createdAt: '02/09/2026',
+    description: 'Higienização semestral dos filtros e revisão da tubulação de gás.',
+    createdAt: '01/09/2026',
     photos: []
   }
 ];
@@ -547,150 +318,77 @@ export const INITIAL_MAINTENANCES: GestaoMaintenance[] = [
 export const INITIAL_DOCUMENTS: GestaoDocument[] = [
   {
     id: 'doc-01',
-    title: 'Contrato de Locação Assinado Digitalmente',
+    title: 'Contrato de Locação Assinado (CTR-2026-001)',
     category: 'CONTRATO',
-    unitName: 'Sala 101 - Paulista Corporate',
+    unitName: 'Sala 101 - Edifício Paulista Corporate',
     targetRole: 'TODOS',
-    fileUrl: 'https://docs.i7.com.br/contratos/ctr-101-assinado.pdf',
+    fileUrl: 'https://docs.i7.com.br/contratos/ctr-001-assinado.pdf',
     fileSize: '1.4 MB',
-    uploadedAt: '02/05/2025'
+    uploadedAt: '01/09/2026'
   },
   {
     id: 'doc-02',
-    title: 'Laudo de Vistoria de Entrada com 48 Fotos',
-    category: 'VISTORIA',
-    unitName: 'Apto 204 - Faria Lima Prime',
-    targetRole: 'TODOS',
-    fileUrl: 'https://docs.i7.com.br/vistorias/vistoria-204-entrada.pdf',
-    fileSize: '8.2 MB',
-    uploadedAt: '01/01/2026'
-  },
-  {
-    id: 'doc-03',
-    title: 'Regulamento Interno e Convenção do Condomínio',
+    title: 'Convenção e Regulamento do Edifício Paulista Corporate',
     category: 'REGULAMENTO',
     unitName: 'Edifício Paulista Corporate',
     targetRole: 'TODOS',
     fileUrl: 'https://docs.i7.com.br/condominio/regulamento-paulista.pdf',
     fileSize: '2.1 MB',
-    uploadedAt: '10/01/2026'
-  },
-  {
-    id: 'doc-04',
-    title: 'Apólice do Seguro Fiança Porto Seguro',
-    category: 'APOLICE',
-    unitName: 'Sala 101 - Paulista Corporate',
-    targetRole: 'PROPRIETARIO',
-    fileUrl: 'https://docs.i7.com.br/apolices/apolice-porto-101.pdf',
-    fileSize: '950 KB',
-    uploadedAt: '05/05/2025'
+    uploadedAt: '01/09/2026'
   }
 ];
 
 export const INITIAL_ANNOUNCEMENTS: GestaoAnnouncement[] = [
   {
     id: 'ann-01',
-    title: 'Manutenção Preventiva dos Elevadores - Paulista Corporate',
-    content: 'Informamos que nesta quinta-feira (04/09), das 09h às 12h, os elevadores sociais 1 e 2 passarão por calibração preventiva. O elevador de serviço estará operando normalmente.',
-    unitScope: 'Edifício Paulista Corporate',
+    title: 'Boas-vindas ao Portal Digital de Gestão i7',
+    content: 'Sejam bem-vindos à plataforma de gestão inteligente i7. Aqui você pode emitir 2ª via de faturas com PIX instantâneo, acompanhar repasses e solicitar atendimentos com fotos.',
+    unitScope: 'Todos os Prédios',
     targetRole: 'TODOS',
     createdAt: '01/09/2026',
-    totalTargetUsers: 14,
-    readBy: [
-      { userId: 'usr-6', userName: 'TechSolutions Brasil Ltda', readAt: '01/09/2026 14:32' },
-      { userId: 'usr-2', userName: 'Eduardo Silveira Ramos', readAt: '02/09/2026 09:15' }
-    ]
-  },
-  {
-    id: 'ann-02',
-    title: 'Atualização das Diretrizes de Descarte de Lixo Reciclável',
-    content: 'Por determinação da administração municipal, todo lixo eletrônico e baterias devem ser depositados exclusivamente na lixeira ecológica do piso térreo.',
-    unitScope: 'Todos os Prédios',
-    targetRole: 'INQUILINO',
-    createdAt: '25/08/2026',
-    totalTargetUsers: 28,
-    readBy: [
-      { userId: 'usr-5', userName: 'Lucas Ferreira', readAt: '25/08/2026 19:40' }
-    ]
+    totalTargetUsers: 2,
+    readBy: []
   }
 ];
 
 export const INITIAL_EXPENSES: GestaoExpense[] = [
   {
     id: 'exp-01',
-    description: 'Reparo hidráulico urgente na copa',
-    unitName: 'Sala 101 - Paulista Corporate',
+    description: 'Manutenção preventiva de ar-condicionado',
+    unitName: 'Sala 101 - Edifício Paulista Corporate',
     ownerName: 'Eduardo Silveira Ramos',
     category: 'MANUTENCAO',
     amount: 350,
-    date: '10/08/2026',
-    status: 'DESCONTADO_REPASSE',
-    receiptNumber: 'NF-e 49102'
-  },
-  {
-    id: 'exp-02',
-    description: 'Cota extraordinária de impermeabilização',
-    unitName: 'Apto 204 - Faria Lima Prime',
-    ownerName: 'Mariana Castro',
-    category: 'CONDOMINIO',
-    amount: 190,
-    date: '15/08/2026',
+    date: '02/09/2026',
     status: 'LANCADO',
-    receiptNumber: 'REC-8812'
+    receiptNumber: 'NF-e 10492'
   }
 ];
 
 export const INITIAL_AUDIT_LOGS: GestaoAuditLog[] = [
   {
     id: 'aud-01',
-    user: 'admin@i7.com.br',
-    action: 'EMISSAO_BOLETO',
-    entity: 'Boleto BOL-8901',
-    details: 'Emissão de cobrança mensal para Apto 204 no valor de R$ 5.970,00',
-    timestamp: '01/09/2026 10:14:22',
-    ip: '189.120.44.12'
-  },
-  {
-    id: 'aud-02',
-    user: 'admin@i7.com.br',
-    action: 'REGUA_INADIMPLENCIA',
-    entity: 'Boleto BOL-8850',
-    details: 'Disparo de primeiro aviso automático de cobrança após 8 dias de atraso',
-    timestamp: '02/09/2026 08:00:01',
-    ip: '10.0.4.15'
-  },
-  {
-    id: 'aud-03',
-    user: 'admin@i7.com.br',
-    action: 'APROVACAO_CHAMADO',
-    entity: 'Manutenção mnt-01',
-    details: 'Orçamento de R$ 380 aprovado e técnico alocado',
-    timestamp: '30/08/2026 16:45:10',
-    ip: '189.120.44.12'
-  },
-  {
-    id: 'aud-04',
-    user: 'eduardo.silveira@email.com',
-    action: 'LOGIN_PORTAL',
-    entity: 'Portal do Proprietário',
-    details: 'Acesso autenticado via e-mail e senha',
-    timestamp: '02/09/2026 09:12:05',
-    ip: '177.38.19.88'
+    user: 'admin@i7imob.com.br',
+    action: 'INICIALIZACAO_SISTEMA',
+    entity: 'Plataforma i7',
+    details: 'Base de dados oficial configurada com sucesso',
+    timestamp: '01/09/2026 09:00:00',
+    ip: '189.40.12.85'
   }
 ];
 
 export const INITIAL_SETTINGS: GestaoSettings = {
   organizationName: 'i7 Inteligência Imobiliária S.A.',
   cnpj: '45.123.890/0001-99',
-  email: 'contato@i7.com.br',
+  email: 'contato@i7imob.com.br',
   phone: '(11) 3090-4000',
-  address: 'Av. Brigadeiro Faria Lima, 3477 - 14º Andar - Itaim Bibi, São Paulo - SP',
+  address: 'R. Cel. Nogueira Padilha, 374 - Vila Hortência, Sorocaba - SP',
   defaultAdminFeePercent: 10,
   defaultFinePercent: 10,
   defaultDailyInterestPercent: 0.033, // ~1% ao mês
-  asaasApiKey: 'live_api_key_demo_asaas_sec_9941a80...',
-  asaasEnvironment: 'SANDBOX',
-  asaasWalletId: 'wal_i7_proptech_main',
+  asaasApiKey: process.env.NEXT_PUBLIC_ASAAS_API_KEY || 'configurado_no_painel',
+  asaasEnvironment: 'PRODUCTION',
+  asaasWalletId: process.env.NEXT_PUBLIC_ASAAS_WALLET_ID || 'carteira_i7_oficial',
   autoDunningEnabled: true
 };
 
@@ -712,4 +410,418 @@ export function getStoredData<T>(key: string, initialData: T): T {
 export function saveStoredData<T>(key: string, data: T): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(`i7_gestao_${key}`, JSON.stringify(data));
+}
+
+export function logAuditEvent(action: string, entity: string, details: string, user?: string): void {
+  if (typeof window === 'undefined') return;
+  const currentLogs = getStoredData<GestaoAuditLog[]>('audit_logs', INITIAL_AUDIT_LOGS);
+  const now = new Date();
+  const timestamp = `${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR')}`;
+  const newLog: GestaoAuditLog = {
+    id: `aud-${Date.now()}`,
+    user: user || 'admin@i7imob.com.br',
+    action,
+    entity,
+    details,
+    timestamp,
+    ip: '189.40.12.85'
+  };
+  saveStoredData('audit_logs', [newLog, ...currentLogs]);
+}
+
+export interface ScheduledVisit {
+  id: string;
+  propertyId: string;
+  propertyTitle: string;
+  propertyAddress: string;
+  clientName: string;
+  clientEmail: string;
+  clientPhone: string;
+  scheduledDate: string; // Ex: "2026-09-08T14:30"
+  status: 'PENDENTE_CONFIRMACAO' | 'CONFIRMADA' | 'REAGENDAMENTO_SOLICITADO' | 'CANCELADA';
+  adminNotes?: string;
+  proposedDate?: string;
+  createdAt: string;
+}
+
+export const INITIAL_VISITS: ScheduledVisit[] = [
+  {
+    id: 'vis-1',
+    propertyId: 'prop-1',
+    propertyTitle: 'Studio Conceito no Parque Campolim com Varanda Gourmet',
+    propertyAddress: 'Av. Antônio Carlos Comitre, 1200 - Parque Campolim, Sorocaba',
+    clientName: 'Rodrigo Medeiros',
+    clientEmail: 'rodrigo.m@gmail.com',
+    clientPhone: '(15) 99781-2244',
+    scheduledDate: '2026-09-08T14:30',
+    status: 'PENDENTE_CONFIRMACAO',
+    createdAt: '03/09/2026'
+  },
+  {
+    id: 'vis-2',
+    propertyId: 'prop-2',
+    propertyTitle: 'Apartamento de Alto Padrão 3 Dorms na Vila Hortência',
+    propertyAddress: 'Rua Cel. Nogueira Padilha, 374 - Vila Hortência, Sorocaba',
+    clientName: 'Fernanda Lima',
+    clientEmail: 'fernanda.lima@outlook.com',
+    clientPhone: '(15) 99144-8899',
+    scheduledDate: '2026-09-09T10:00',
+    status: 'CONFIRMADA',
+    createdAt: '02/09/2026'
+  }
+];
+
+export type ItemCondition = 'NOVO' | 'BOM' | 'REGULAR' | 'DANIFICADO';
+
+export interface InspectionRoomItem {
+  id: string;
+  name: string;
+  condition: ItemCondition;
+  notes: string;
+  photos: string[];
+}
+
+export interface InspectionRoom {
+  id: string;
+  name: string;
+  items: InspectionRoomItem[];
+}
+
+export interface InspectionMeters {
+  waterReading?: string;
+  waterMeterNumber?: string;
+  waterPhotoUrl?: string;
+  electricReading?: string;
+  electricMeterNumber?: string;
+  electricPhotoUrl?: string;
+  gasReading?: string;
+  gasPhotoUrl?: string;
+  keysHandedCount: number;
+  remoteControlsCount: number;
+  accessTagsCount: number;
+  keysDescription?: string;
+}
+
+export interface InspectionReport {
+  id: string;
+  code: string;
+  propertyId: string;
+  unitName: string;
+  propertyAddress: string;
+  type: 'ENTRADA' | 'SAIDA' | 'CONSTATACAO';
+  status: 'RASCUNHO' | 'AGUARDANDO_ASSINATURAS' | 'CONTESTADA' | 'HOMOLOGADA';
+  inspectorName: string;
+  inspectorCreci: string;
+  tenantName: string;
+  tenantEmail: string;
+  tenantPhone: string;
+  ownerName: string;
+  ownerEmail: string;
+  inspectionDate: string;
+  meters: InspectionMeters;
+  rooms: InspectionRoom[];
+  generalNotes?: string;
+  tenantContestation?: string;
+  signedByInspectorAt?: string;
+  signedByTenantAt?: string;
+  signedByOwnerAt?: string;
+  createdAt: string;
+}
+
+export const INITIAL_INSPECTIONS: InspectionReport[] = [
+  {
+    id: 'vis-rep-1',
+    code: 'VIS-2026-081',
+    propertyId: 'prop-1',
+    unitName: 'Studio 45 - Residencial Parque Campolim',
+    propertyAddress: 'Av. Antônio Carlos Comitre, 1200 - Parque Campolim, Sorocaba - SP',
+    type: 'ENTRADA',
+    status: 'AGUARDANDO_ASSINATURAS',
+    inspectorName: 'Marcio Silva (Vistoriador Credenciado i7)',
+    inspectorCreci: 'CRECI 198244-F',
+    tenantName: 'Lucas Mendes Ferreira',
+    tenantEmail: 'lucas.mendes@gmail.com',
+    tenantPhone: '(15) 99712-3344',
+    ownerName: 'Carlos Alberto Silva',
+    ownerEmail: 'proprietario@i7.com.br',
+    inspectionDate: '01/09/2026 às 14:00',
+    meters: {
+      waterReading: '142,3 m³',
+      waterMeterNumber: 'HID-88412',
+      electricReading: '4.912 kWh',
+      electricMeterNumber: 'CPFL-091244',
+      gasReading: '64,1 m³',
+      keysHandedCount: 3,
+      remoteControlsCount: 2,
+      accessTagsCount: 2,
+      keysDescription: '2 chaves da porta principal (fechadura tetra), 1 chave da caixa de correio e 2 tags magnéticas de acesso ao condomínio.'
+    },
+    rooms: [
+      {
+        id: 'r-1',
+        name: 'Sala & Living Integrado',
+        items: [
+          {
+            id: 'i-1',
+            name: 'Paredes & Pintura',
+            condition: 'NOVO',
+            notes: 'Pintura nova em látex fosco cor branco neve, sem furos ou manchas.',
+            photos: ['https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800']
+          },
+          {
+            id: 'i-2',
+            name: 'Piso em Porcelanato',
+            condition: 'BOM',
+            notes: 'Porcelanato 80x80 polido em perfeito estado, rejunte limpo e sem trincas.',
+            photos: ['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800']
+          },
+          {
+            id: 'i-3',
+            name: 'Esquadrias & Sacada',
+            condition: 'BOM',
+            notes: 'Porta de correr de vidro temperado correndo suavemente, trava funcionando perfeitamente.',
+            photos: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800']
+          }
+        ]
+      },
+      {
+        id: 'r-2',
+        name: 'Cozinha & Área de Serviço',
+        items: [
+          {
+            id: 'i-4',
+            name: 'Bancada de Granito & Cuba',
+            condition: 'BOM',
+            notes: 'Granito São Gabriel polido sem trincas, torneira monocomando sem vazamento.',
+            photos: ['https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=800']
+          },
+          {
+            id: 'i-5',
+            name: 'Armários Planejados',
+            condition: 'REGULAR',
+            notes: 'Armários MDF em bom funcionamento. Pequeno desgaste superficial na dobradiça inferior da pia.',
+            photos: ['https://images.unsplash.com/photo-1556912172-45b7abe8b7e1?w=800']
+          }
+        ]
+      },
+      {
+        id: 'r-3',
+        name: 'Banheiro Social',
+        items: [
+          {
+            id: 'i-6',
+            name: 'Box de Vidro & Chuveiro',
+            condition: 'NOVO',
+            notes: 'Box blindex com silicone limpo sem mofo, chuveiro Lorenzetti turbo testado e aquecendo 100%.',
+            photos: ['https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800']
+          },
+          {
+            id: 'i-7',
+            name: 'Vaso Sanitário & Válvula',
+            condition: 'BOM',
+            notes: 'Caixa acoplada com descarga de duplo fluxo funcionando perfeitamente sem gotejamento.',
+            photos: ['https://images.unsplash.com/photo-1620626011761-996317b8d101?w=800']
+          }
+        ]
+      }
+    ],
+    generalNotes: 'Imóvel entregue em excelente estado de asseio e conservação. Prazo de 5 dias corridos para o locatário registrar contestação ou ressalvas.',
+    signedByInspectorAt: '01/09/2026 15:10',
+    createdAt: '01/09/2026'
+  },
+  {
+    id: 'vis-rep-2',
+    code: 'VIS-2026-079',
+    propertyId: 'prop-2',
+    unitName: 'Apto 32 - Edifício Vila Hortência Corporate',
+    propertyAddress: 'Rua Cel. Nogueira Padilha, 374 - Vila Hortência, Sorocaba - SP',
+    type: 'SAIDA',
+    status: 'HOMOLOGADA',
+    inspectorName: 'Carlos Henrique (Perito Vistoriador i7)',
+    inspectorCreci: 'CRECI 162980-F',
+    tenantName: 'Mariana Duarte Souza',
+    tenantEmail: 'mariana.duarte@hotmail.com',
+    tenantPhone: '(15) 99188-5522',
+    ownerName: 'Roberto Nogueira',
+    ownerEmail: 'roberto.nogueira@gmail.com',
+    inspectionDate: '28/08/2026 às 11:00',
+    meters: {
+      waterReading: '318,7 m³',
+      waterMeterNumber: 'HID-77192',
+      electricReading: '8.410 kWh',
+      electricMeterNumber: 'CPFL-088192',
+      gasReading: '112,0 m³',
+      keysHandedCount: 4,
+      remoteControlsCount: 2,
+      accessTagsCount: 2,
+      keysDescription: 'Devolução de 4 chaves originais, 2 controles de portão e 2 tags magnetizadas.'
+    },
+    rooms: [
+      {
+        id: 'r-4',
+        name: 'Geral do Imóvel & Desocupação',
+        items: [
+          {
+            id: 'i-8',
+            name: 'Pintura Geral de Devolução',
+            condition: 'BOM',
+            notes: 'Pintura repintada na desocupação conforme cláusula contratual.',
+            photos: ['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800']
+          },
+          {
+            id: 'i-9',
+            name: 'Limpeza & Entrega',
+            condition: 'BOM',
+            notes: 'Imóvel completamente higienizado, sem lixo ou pertences da locatária anterior.',
+            photos: ['https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?w=800']
+          }
+        ]
+      }
+    ],
+    generalNotes: 'Vistoria de saída homologada sem retenções caucionárias. Termo de quitação emitido.',
+    signedByInspectorAt: '28/08/2026 12:00',
+    signedByTenantAt: '28/08/2026 13:30',
+    signedByOwnerAt: '28/08/2026 14:00',
+    createdAt: '28/08/2026'
+  }
+];
+
+export type ProposalStatus = 
+  | 'AGUARDANDO_DOCUMENTOS' 
+  | 'EM_ANALISE_CREDITO' 
+  | 'APROVADA' 
+  | 'CONTRATO_ASSINADO' 
+  | 'REPROVADA';
+
+export type GuaranteeType = 
+  | 'FIANCA_DIGITAL' 
+  | 'CAUCAO' 
+  | 'SEGURO_FIANCA';
+
+export interface ProposalDocument {
+  name: string;
+  type: string;
+  url: string;
+  uploadedAt: string;
+}
+
+export interface RentalProposal {
+  id: string;
+  code: string;
+  visitId?: string;
+  propertyId: string;
+  propertyTitle: string;
+  propertyAddress: string;
+  unitName: string;
+  rentValue: number;
+  condoValue: number;
+  iptuValue: number;
+  totalMonthly: number;
+  clientName: string;
+  clientEmail: string;
+  clientPhone: string;
+  clientCpf?: string;
+  clientBirthDate?: string;
+  clientProfession?: string;
+  clientIncome?: number;
+  guaranteeType: GuaranteeType;
+  documents: ProposalDocument[];
+  creditScore?: number;
+  status: ProposalStatus;
+  adminFeedback?: string;
+  contractId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const INITIAL_PROPOSALS: RentalProposal[] = [
+  {
+    id: 'prop-lease-1',
+    code: 'PROP-2026-001',
+    visitId: 'vis-1',
+    propertyId: 'prop-1',
+    propertyTitle: 'Studio Conceito no Parque Campolim com Varanda Gourmet',
+    propertyAddress: 'Av. Antônio Carlos Comitre, 1200 - Parque Campolim, Sorocaba',
+    unitName: 'Studio 45 - Residencial Parque Campolim',
+    rentValue: 3200,
+    condoValue: 480,
+    iptuValue: 120,
+    totalMonthly: 3800,
+    clientName: 'Rodrigo Medeiros',
+    clientEmail: 'rodrigo.m@gmail.com',
+    clientPhone: '(15) 99781-2244',
+    clientCpf: '341.892.418-09',
+    clientBirthDate: '14/07/1992',
+    clientProfession: 'Engenheiro de Software Sênior',
+    clientIncome: 14500,
+    guaranteeType: 'FIANCA_DIGITAL',
+    creditScore: 885,
+    documents: [
+      {
+        name: 'CNH_Digital_Rodrigo_Medeiros.pdf',
+        type: 'IDENTIDADE',
+        url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800',
+        uploadedAt: '03/09/2026 16:30'
+      },
+      {
+        name: 'Holerite_Julho_Agosto_2026.pdf',
+        type: 'RENDA',
+        url: 'https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=800',
+        uploadedAt: '03/09/2026 16:32'
+      },
+      {
+        name: 'Comprovante_Residencia_CPFL.pdf',
+        type: 'RESIDENCIA',
+        url: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800',
+        uploadedAt: '03/09/2026 16:33'
+      }
+    ],
+    status: 'EM_ANALISE_CREDITO',
+    createdAt: '03/09/2026',
+    updatedAt: '03/09/2026'
+  },
+  {
+    id: 'prop-lease-2',
+    code: 'PROP-2026-002',
+    visitId: 'vis-2',
+    propertyId: 'prop-2',
+    propertyTitle: 'Apartamento de Alto Padrão 3 Dorms na Vila Hortência',
+    propertyAddress: 'Rua Cel. Nogueira Padilha, 374 - Vila Hortência, Sorocaba',
+    unitName: 'Apto 32 - Edifício Vila Hortência Corporate',
+    rentValue: 4200,
+    condoValue: 650,
+    iptuValue: 180,
+    totalMonthly: 5030,
+    clientName: 'Fernanda Lima',
+    clientEmail: 'fernanda.lima@outlook.com',
+    clientPhone: '(15) 99144-8899',
+    clientCpf: '289.441.908-72',
+    clientBirthDate: '22/11/1988',
+    clientProfession: 'Gerente Administrativa',
+    clientIncome: 16800,
+    guaranteeType: 'CAUCAO',
+    creditScore: 820,
+    documents: [],
+    status: 'AGUARDANDO_DOCUMENTOS',
+    createdAt: '03/09/2026',
+    updatedAt: '03/09/2026'
+  }
+];
+
+export function resetToCleanBaseline(): void {
+  if (typeof window === 'undefined') return;
+  saveStoredData('units', INITIAL_UNITS);
+  saveStoredData('users', INITIAL_USERS);
+  saveStoredData('contracts', INITIAL_CONTRACTS);
+  saveStoredData('boletos', INITIAL_BOLETOS);
+  saveStoredData('payments', INITIAL_PAYMENTS);
+  saveStoredData('maintenances', INITIAL_MAINTENANCES);
+  saveStoredData('documents', INITIAL_DOCUMENTS);
+  saveStoredData('announcements', INITIAL_ANNOUNCEMENTS);
+  saveStoredData('expenses', INITIAL_EXPENSES);
+  saveStoredData('audit_logs', INITIAL_AUDIT_LOGS);
+  saveStoredData('settings', INITIAL_SETTINGS);
+  saveStoredData('scheduled_visits', INITIAL_VISITS);
+  saveStoredData('inspections', INITIAL_INSPECTIONS);
+  saveStoredData('proposals', INITIAL_PROPOSALS);
 }

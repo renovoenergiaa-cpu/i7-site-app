@@ -71,17 +71,22 @@ export const Navbar: React.FC = () => {
           {session ? (
             <div className="flex items-center gap-3">
               <Link 
-                href="/painel" 
+                href={session.user.role === 'ADMIN' ? '/painel' : session.user.role === 'OWNER' ? '/portal?view=owner' : '/portal?view=tenant'} 
                 className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-surface border border-border hover:border-brand-lime/50 transition-all group"
               >
                 <UserCircle className="w-5 h-5 text-text-secondary group-hover:text-brand-lime transition-colors" />
-                <span className="text-xs font-bold text-text-primary max-w-[120px] truncate">
-                  {session.user.name || 'Minha Conta'}
-                </span>
+                <div className="flex flex-col text-left">
+                  <span className="text-xs font-bold text-text-primary max-w-[120px] truncate">
+                    {session.user.name || 'Minha Conta'}
+                  </span>
+                  <span className="text-[9px] font-black text-brand-lime uppercase">
+                    {session.user.role === 'ADMIN' ? 'Painel Admin' : session.user.role === 'OWNER' ? 'Proprietário' : 'Inquilino'}
+                  </span>
+                </div>
               </Link>
               <button 
                 onClick={handleLogout}
-                title="Sair"
+                title="Sair da Conta"
                 className="p-2.5 rounded-xl bg-surface-card border border-border hover:border-red-500/50 text-text-secondary hover:text-red-400 transition-all"
               >
                 <LogOut className="w-4 h-4" />
