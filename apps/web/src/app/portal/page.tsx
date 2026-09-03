@@ -234,39 +234,75 @@ export default function PortalUnificadoPage() {
   const currentUserName = session?.user?.name || '';
   const currentUserEmail = session?.user?.email || '';
 
-  // Owner view
+  // Verifica se é a conta fixa de demonstração ou uma conta real cadastrada
+  const isDemoOwner = currentUserEmail.toLowerCase() === 'proprietario@i7.com.br';
+  const isDemoTenant = currentUserEmail.toLowerCase() === 'inquilino@i7.com.br';
+
+  // Owner view: Contas novas trazem EXCLUSIVAMENTE os dados reais delas (sem dados fictícios de terceiros)
   const userOwnedUnits = units.filter(u => 
     (currentUserEmail && u.ownerEmail.toLowerCase() === currentUserEmail.toLowerCase()) ||
     (currentUserName && u.ownerName.toLowerCase().includes(currentUserName.toLowerCase()))
   );
-  const ownerUnits = userOwnedUnits.length > 0 ? userOwnedUnits : units.filter(u => u.ownerName.includes('Eduardo') || u.ownerName.includes('Mariana'));
-  const ownerBoletos = boletos;
-  const ownerPayments = payments;
-  const ownerMaintenances = maintenances;
+  const ownerUnits = isDemoOwner 
+    ? units.filter(u => u.ownerName.includes('Eduardo') || u.ownerName.includes('Mariana') || u.ownerName.includes('Carlos'))
+    : userOwnedUnits;
+
+  const ownerContracts = contracts.filter(c => 
+    isDemoOwner ? true : (currentUserEmail && c.ownerEmail.toLowerCase() === currentUserEmail.toLowerCase()) ||
+    (currentUserName && c.ownerName.toLowerCase().includes(currentUserName.toLowerCase()))
+  );
+
+  const ownerBoletos = boletos.filter(b => 
+    isDemoOwner ? true : (currentUserName && b.ownerName.toLowerCase().includes(currentUserName.toLowerCase())) ||
+    ownerUnits.some(u => b.unitName.includes(u.unitNumber) || b.unitName.includes(u.buildingName))
+  );
+
+  const ownerPayments = payments.filter(p => 
+    isDemoOwner ? true : (currentUserName && p.ownerName.toLowerCase().includes(currentUserName.toLowerCase())) ||
+    ownerUnits.some(u => p.unitName.includes(u.unitNumber) || p.unitName.includes(u.buildingName))
+  );
+
+  const ownerMaintenances = maintenances.filter(m => 
+    isDemoOwner ? true : ownerUnits.some(u => m.unitName.includes(u.unitNumber) || m.unitName.includes(u.buildingName))
+  );
+
   const ownerDocuments = documents.filter(d => d.targetRole === 'TODOS' || d.targetRole === 'PROPRIETARIO');
 
-  // Tenant view
-  const tenantContract = contracts.find(c => 
+  // Tenant view: Contas novas trazem EXCLUSIVAMENTE o contrato e boletos do inquilino cadastrado
+  const realTenantContract = contracts.find(c => 
     (currentUserEmail && c.tenantEmail.toLowerCase() === currentUserEmail.toLowerCase()) ||
-    (currentUserName && c.tenantName.toLowerCase().includes(currentUserName.toLowerCase())) ||
-    c.tenantName.includes('Lucas')
-  ) || contracts[0];
-
-  const tenantOpenBoletos = boletos.filter(b => 
-    ((currentUserName && b.tenantName.toLowerCase().includes(currentUserName.toLowerCase())) || b.tenantName.includes('Lucas') || b.tenantName.includes('TechSolutions')) &&
-    (b.status === 'EM_ABERTO' || b.status === 'VENCIDO')
+    (currentUserName && c.tenantName.toLowerCase().includes(currentUserName.toLowerCase()))
   );
 
-  const tenantPaidBoletos = boletos.filter(b => 
-    ((currentUserName && b.tenantName.toLowerCase().includes(currentUserName.toLowerCase())) || b.tenantName.includes('Lucas') || b.tenantName.includes('TechSolutions')) &&
-    b.status === 'PAGO'
-  );
+  const tenantContract = isDemoTenant 
+    ? (contracts.find(c => c.tenantName.includes('Lucas')) || contracts[0])
+    : (realTenantContract || null);
 
-  const tenantMaintenances = maintenances.filter(m => 
-    (currentUserName && m.requestedBy.toLowerCase().includes(currentUserName.toLowerCase())) ||
-    m.requestedBy.includes('Lucas') ||
-    m.requestedBy.includes('TechSolutions')
-  );
+  const tenantOpenBoletos = boletos.filter(b => {
+    if (isDemoTenant) {
+      return (b.tenantName.includes('Lucas') || b.tenantName.includes('TechSolutions')) &&
+             (b.status === 'EM_ABERTO' || b.status === 'VENCIDO');
+    }
+    const matchesUser = (currentUserName && b.tenantName.toLowerCase().includes(currentUserName.toLowerCase())) ||
+                        (tenantContract && b.unitName === tenantContract.unitName);
+    return matchesUser && (b.status === 'EM_ABERTO' || b.status === 'VENCIDO');
+  });
+
+  const tenantPaidBoletos = boletos.filter(b => {
+    if (isDemoTenant) {
+      return (b.tenantName.includes('Lucas') || b.tenantName.includes('TechSolutions')) && b.status === 'PAGO';
+    }
+    const matchesUser = (currentUserName && b.tenantName.toLowerCase().includes(currentUserName.toLowerCase())) ||
+                        (tenantContract && b.unitName === tenantContract.unitName);
+    return matchesUser && b.status === 'PAGO';
+  });
+
+  const tenantMaintenances = maintenances.filter(m => {
+    if (isDemoTenant) {
+      return m.requestedBy.includes('Lucas') || m.requestedBy.includes('TechSolutions');
+    }
+    return currentUserName && m.requestedBy.toLowerCase().includes(currentUserName.toLowerCase());
+  });
 
   const tenantDocuments = documents.filter(d => d.targetRole === 'TODOS' || d.targetRole === 'INQUILINO');
 
@@ -392,20 +428,34 @@ export default function PortalUnificadoPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                   <div className="p-6 rounded-2xl bg-white border border-border shadow-sm">
                     <div className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Ocupação das Propriedades</div>
-                    <div className="text-2xl font-black text-emerald-600">100%</div>
-                    <div className="text-[11px] text-text-secondary mt-1">2 de 2 salas/unidades locadas</div>
+                    <div className="text-2xl font-black text-emerald-600">
+                      {ownerUnits.length > 0 ? `${Math.round((ownerUnits.filter(u => u.status === 'LOCADO').length / ownerUnits.length) * 100)}%` : '0%'}
+                    </div>
+                    <div className="text-[11px] text-text-secondary mt-1">
+                      {ownerUnits.length > 0 
+                        ? `${ownerUnits.filter(u => u.status === 'LOCADO').length} de ${ownerUnits.length} unidade(s) locada(s)`
+                        : 'Nenhum imóvel cadastrado no momento'}
+                    </div>
                   </div>
 
                   <div className="p-6 rounded-2xl bg-white border border-border shadow-sm">
                     <div className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Boletos Vencidos por Inquilinos</div>
-                    <div className="text-2xl font-black text-red-600">1 pendente</div>
-                    <div className="text-[11px] text-text-secondary mt-1">Régua de cobrança automática ativa</div>
+                    <div className="text-2xl font-black text-red-600">
+                      {ownerBoletos.filter(b => b.status === 'VENCIDO').length} pendente(s)
+                    </div>
+                    <div className="text-[11px] text-text-secondary mt-1">
+                      {ownerBoletos.filter(b => b.status === 'VENCIDO').length > 0 ? 'Régua de cobrança automática ativa' : 'Zero inadimplência registrada'}
+                    </div>
                   </div>
 
                   <div className="p-6 rounded-2xl bg-white border border-border shadow-sm">
                     <div className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Chamados em Aberto</div>
-                    <div className="text-2xl font-black text-purple-600">1 chamado</div>
-                    <div className="text-[11px] text-text-secondary mt-1">Orçamento aprovado para execução</div>
+                    <div className="text-2xl font-black text-purple-600">
+                      {ownerMaintenances.filter(m => m.status !== 'CONCLUIDO').length} chamado(s)
+                    </div>
+                    <div className="text-[11px] text-text-secondary mt-1">
+                      {ownerMaintenances.filter(m => m.status !== 'CONCLUIDO').length > 0 ? 'Em atendimento pela equipe técnica' : 'Nenhuma pendência estrutural'}
+                    </div>
                   </div>
                 </div>
 
@@ -416,23 +466,34 @@ export default function PortalUnificadoPage() {
                       <h3 className="font-bold text-sm text-text-primary flex items-center gap-2">
                         <Building2 className="w-4 h-4 text-brand-lime" /> Minhas Propriedades
                       </h3>
-                      <button onClick={() => setActiveTab('propriedades')} className="text-xs font-bold text-brand-lime hover:underline">
-                        Ver detalhes
-                      </button>
+                      {ownerUnits.length > 0 && (
+                        <button onClick={() => setActiveTab('propriedades')} className="text-xs font-bold text-brand-lime hover:underline cursor-pointer">
+                          Ver detalhes
+                        </button>
+                      )}
                     </div>
 
                     <div className="space-y-3">
-                      {ownerUnits.map(u => (
-                        <div key={u.id} className="p-3.5 rounded-xl bg-surface border border-border flex items-center justify-between">
-                          <div>
-                            <div className="font-bold text-xs text-text-primary">{u.buildingName} - {u.unitNumber}</div>
-                            <div className="text-[11px] text-text-secondary mt-0.5">Locatário: {u.tenantName}</div>
-                          </div>
-                          <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-100 text-emerald-700">
-                            {u.status}
-                          </span>
+                      {ownerUnits.length === 0 ? (
+                        <div className="p-6 rounded-xl bg-surface border border-dashed border-border text-center space-y-2.5">
+                          <p className="text-xs text-text-secondary">Você ainda não possui imóveis cadastrados sob nossa gestão.</p>
+                          <Link href="/anunciar" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow-sm transition-all">
+                            <Plus className="w-3.5 h-3.5" /> Anunciar meu primeiro imóvel
+                          </Link>
                         </div>
-                      ))}
+                      ) : (
+                        ownerUnits.map(u => (
+                          <div key={u.id} className="p-3.5 rounded-xl bg-surface border border-border flex items-center justify-between">
+                            <div>
+                              <div className="font-bold text-xs text-text-primary">{u.buildingName} - {u.unitNumber}</div>
+                              <div className="text-[11px] text-text-secondary mt-0.5">Locatário: {u.tenantName || 'Disponível para locação'}</div>
+                            </div>
+                            <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-100 text-emerald-700">
+                              {u.status}
+                            </span>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
 
@@ -441,28 +502,34 @@ export default function PortalUnificadoPage() {
                       <h3 className="font-bold text-sm text-text-primary flex items-center gap-2">
                         <ArrowUpRight className="w-4 h-4 text-brand-lime" /> Últimos Repasses Recebidos
                       </h3>
-                      <button onClick={() => setActiveTab('repasses')} className="text-xs font-bold text-brand-lime hover:underline">
-                        Ver histórico
-                      </button>
+                      {ownerPayments.length > 0 && (
+                        <button onClick={() => setActiveTab('repasses')} className="text-xs font-bold text-brand-lime hover:underline cursor-pointer">
+                          Ver histórico
+                        </button>
+                      )}
                     </div>
 
                     <div className="space-y-3">
-                      {ownerPayments.map(p => (
-                        <div key={p.id} className="p-3.5 rounded-xl bg-surface border border-border flex items-center justify-between">
-                          <div>
-                            <div className="font-bold text-xs text-text-primary">Competência {p.competence}</div>
-                            <div className="text-[11px] text-text-secondary mt-0.5">{p.unitName}</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-black text-xs text-blue-600">
-                              R$ {p.transferredAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </div>
-                            <span className="text-[10px] text-text-muted">
-                              {p.transferDate ? `Pago em ${p.transferDate}` : 'Aguardando'}
-                            </span>
-                          </div>
+                      {ownerPayments.length === 0 ? (
+                        <div className="p-6 rounded-xl bg-surface border border-dashed border-border text-center">
+                          <p className="text-xs text-text-secondary">Nenhum repasse registrado até o momento.</p>
                         </div>
-                      ))}
+                      ) : (
+                        ownerPayments.map(p => (
+                          <div key={p.id} className="p-3.5 rounded-xl bg-surface border border-border flex items-center justify-between">
+                            <div>
+                              <div className="font-bold text-xs text-text-primary">{p.unitName}</div>
+                              <div className="text-[11px] text-text-secondary">Competência: {p.competence}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-black text-xs text-emerald-600">
+                                R$ {p.transferredAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </div>
+                              <div className="text-[10px] text-text-secondary">Repassado em {p.receivedDate}</div>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
@@ -577,8 +644,38 @@ export default function PortalUnificadoPage() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {ownerUnits.map(unit => {
+            {ownerUnits.length === 0 ? (
+              <div className="p-12 text-center bg-white rounded-3xl border border-border shadow-sm space-y-4 max-w-2xl mx-auto">
+                <div className="w-16 h-16 rounded-2xl bg-surface text-brand-lime flex items-center justify-center mx-auto shadow-inner">
+                  <Building2 className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-base font-black text-text-primary">Você ainda não possui imóveis cadastrados</h3>
+                  <p className="text-xs text-text-secondary leading-relaxed">
+                    Comece cadastrando sua propriedade para avaliação gratuita pela equipe i7. Nós cuidamos do anúncio, vistorias, análise de crédito dos inquilinos e repasse pontual dos aluguéis!
+                  </p>
+                </div>
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <Link
+                    href="/anunciar"
+                    className="px-5 py-2.5 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Cadastrar Meu Primeiro Imóvel</span>
+                  </Link>
+                  <a
+                    href="https://wa.me/5515999990000?text=Ol%C3%A1%2C%20acabei%20de%20me%20cadastrar%20no%20portal%20e%20gostaria%20de%20cadastrar%20meu%20im%C3%B3vel."
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-5 py-2.5 rounded-xl bg-surface border border-border hover:border-brand-lime text-text-primary text-xs font-bold transition-all text-center"
+                  >
+                    Falar com Consultor
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {ownerUnits.map(unit => {
                 const isPending = unit.status === 'PENDENTE_AVALIACAO';
                 const isRejected = unit.status === 'REPROVADO';
                 const isAvailable = unit.status === 'DISPONIVEL';
@@ -659,7 +756,8 @@ export default function PortalUnificadoPage() {
                   </div>
                 );
               })}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -673,41 +771,51 @@ export default function PortalUnificadoPage() {
             </h2>
 
             {portalMode === 'OWNER' ? (
-              <div className="bg-white rounded-2xl border border-border shadow-sm overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-surface border-b border-border text-text-secondary font-bold uppercase tracking-wider text-[10px]">
-                    <tr>
-                      <th className="p-4">Contrato</th>
-                      <th className="p-4">Unidade</th>
-                      <th className="p-4">Locatário</th>
-                      <th className="p-4">Vigência</th>
-                      <th className="p-4">Valor Mensal</th>
-                      <th className="p-4">Reajuste / Garantia</th>
-                      <th className="p-4">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {contracts.map(c => (
-                      <tr key={c.id} className="hover:bg-surface/50">
-                        <td className="p-4 font-mono font-bold text-text-primary">{c.code}</td>
-                        <td className="p-4 font-bold text-text-primary">{c.unitName}</td>
-                        <td className="p-4">{c.tenantName}</td>
-                        <td className="p-4">{c.startDate} a {c.endDate}</td>
-                        <td className="p-4 font-black text-brand-lime">R$ {c.monthlyAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                        <td className="p-4">{c.adjustmentIndex} • {c.guaranteeType.replace('_', ' ')}</td>
-                        <td className="p-4">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-700">
-                            {c.status}
-                          </span>
-                        </td>
+              ownerContracts.length === 0 ? (
+                <div className="p-12 text-center bg-white rounded-3xl border border-border shadow-sm space-y-3 max-w-xl mx-auto">
+                  <FileText className="w-10 h-10 text-brand-lime mx-auto" />
+                  <h3 className="text-base font-black text-text-primary">Nenhum contrato ativo</h3>
+                  <p className="text-xs text-text-secondary">
+                    Assim que suas propriedades forem alugadas e o contrato for formalizado com o locatário, os termos jurídicos e valores aparecerão aqui.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl border border-border shadow-sm overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-surface border-b border-border text-text-secondary font-bold uppercase tracking-wider text-[10px]">
+                      <tr>
+                        <th className="p-4">Contrato</th>
+                        <th className="p-4">Unidade</th>
+                        <th className="p-4">Locatário</th>
+                        <th className="p-4">Vigência</th>
+                        <th className="p-4">Valor Mensal</th>
+                        <th className="p-4">Reajuste / Garantia</th>
+                        <th className="p-4">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {ownerContracts.map(c => (
+                        <tr key={c.id} className="hover:bg-surface/50">
+                          <td className="p-4 font-mono font-bold text-text-primary">{c.code}</td>
+                          <td className="p-4 font-bold text-text-primary">{c.unitName}</td>
+                          <td className="p-4">{c.tenantName}</td>
+                          <td className="p-4">{c.startDate} a {c.endDate}</td>
+                          <td className="p-4 font-black text-brand-lime">R$ {c.monthlyAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                          <td className="p-4">{c.adjustmentIndex} • {c.guaranteeType.replace('_', ' ')}</td>
+                          <td className="p-4">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-700">
+                              {c.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
             ) : (
               // Tenant Contract details
-              tenantContract && (
+              tenantContract ? (
                 <div className="p-8 rounded-2xl bg-white border border-border shadow-sm space-y-6 max-w-3xl">
                   <div className="flex items-center justify-between pb-4 border-b border-border">
                     <div>
@@ -746,6 +854,34 @@ export default function PortalUnificadoPage() {
                     <div>Proprietário locador: <span className="font-bold text-text-primary">{tenantContract.ownerName}</span></div>
                   </div>
                 </div>
+              ) : (
+                <div className="p-12 text-center bg-white rounded-3xl border border-border shadow-sm space-y-4 max-w-xl mx-auto">
+                  <div className="w-14 h-14 rounded-2xl bg-surface text-brand-lime flex items-center justify-center mx-auto shadow-inner">
+                    <FileText className="w-7 h-7" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-base font-black text-text-primary">Nenhum contrato de locação ativo</h3>
+                    <p className="text-xs text-text-secondary leading-relaxed">
+                      Você ainda não possui um contrato de locação vinculado a esta conta. Encontre seu imóvel ideal ou acompanhe sua proposta de locação!
+                    </p>
+                  </div>
+                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <Link
+                      href="/imoveis"
+                      className="px-5 py-2.5 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow-sm transition-all text-center"
+                    >
+                      Ver Imóveis Disponíveis
+                    </Link>
+                    <a
+                      href="https://wa.me/5515999990000?text=Ol%C3%A1%2C%20sou%20inquilino%20e%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20meu%20contrato."
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-5 py-2.5 rounded-xl bg-surface border border-border hover:border-brand-lime text-text-primary text-xs font-bold transition-all text-center"
+                    >
+                      Falar com Atendimento
+                    </a>
+                  </div>
+                </div>
               )
             )}
           </div>
@@ -764,40 +900,50 @@ export default function PortalUnificadoPage() {
 
             {portalMode === 'OWNER' ? (
               // Owner: Full list, read-only without action buttons
-              <div className="bg-white rounded-2xl border border-border shadow-sm overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-surface border-b border-border text-text-secondary font-bold uppercase tracking-wider text-[10px]">
-                    <tr>
-                      <th className="p-4">Código</th>
-                      <th className="p-4">Unidade / Inquilino</th>
-                      <th className="p-4">Valor</th>
-                      <th className="p-4">Vencimento</th>
-                      <th className="p-4">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {ownerBoletos.map(b => (
-                      <tr key={b.id} className="hover:bg-surface/50">
-                        <td className="p-4 font-mono font-bold text-text-primary">{b.code}</td>
-                        <td className="p-4">
-                          <div className="font-bold text-text-primary">{b.unitName}</div>
-                          <div className="text-[11px] text-text-secondary">{b.tenantName}</div>
-                        </td>
-                        <td className="p-4 font-black text-text-primary">R$ {b.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                        <td className="p-4">{b.dueDate}</td>
-                        <td className="p-4">
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
-                            b.status === 'PAGO' ? 'bg-emerald-100 text-emerald-700' :
-                            b.status === 'VENCIDO' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-                          }`}>
-                            {b.status.replace('_', ' ')}
-                          </span>
-                        </td>
+              ownerBoletos.length === 0 ? (
+                <div className="p-12 text-center bg-white rounded-3xl border border-border shadow-sm space-y-3 max-w-xl mx-auto">
+                  <Receipt className="w-10 h-10 text-brand-lime mx-auto" />
+                  <h3 className="text-base font-black text-text-primary">Nenhum boleto emitido</h3>
+                  <p className="text-xs text-text-secondary">
+                    Assim que suas propriedades tiverem faturas de aluguel geradas pelo sistema, você poderá acompanhar os vencimentos e quitações por aqui.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl border border-border shadow-sm overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-surface border-b border-border text-text-secondary font-bold uppercase tracking-wider text-[10px]">
+                      <tr>
+                        <th className="p-4">Código</th>
+                        <th className="p-4">Unidade / Inquilino</th>
+                        <th className="p-4">Valor</th>
+                        <th className="p-4">Vencimento</th>
+                        <th className="p-4">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {ownerBoletos.map(b => (
+                        <tr key={b.id} className="hover:bg-surface/50">
+                          <td className="p-4 font-mono font-bold text-text-primary">{b.code}</td>
+                          <td className="p-4">
+                            <div className="font-bold text-text-primary">{b.unitName}</div>
+                            <div className="text-[11px] text-text-secondary">{b.tenantName}</div>
+                          </td>
+                          <td className="p-4 font-black text-text-primary">R$ {b.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                          <td className="p-4">{b.dueDate}</td>
+                          <td className="p-4">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                              b.status === 'PAGO' ? 'bg-emerald-100 text-emerald-700' :
+                              b.status === 'VENCIDO' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {b.status.replace('_', ' ')}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
             ) : (
               // Tenant: Only OPEN or OVERDUE with payment buttons
               <div className="space-y-4">
@@ -883,89 +1029,109 @@ export default function PortalUnificadoPage() {
 
             {portalMode === 'OWNER' ? (
               // Owner statement
-              <div className="space-y-4">
-                {ownerPayments.map(p => (
-                  <div key={p.id} className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
-                    <div className="flex items-center justify-between pb-3 border-b border-border">
-                      <div>
-                        <span className="text-[10px] font-black uppercase text-brand-lime">Competência</span>
-                        <h3 className="text-lg font-black text-text-primary">{p.competence} • {p.unitName}</h3>
+              ownerPayments.length === 0 ? (
+                <div className="p-12 text-center bg-white rounded-3xl border border-border shadow-sm space-y-3 max-w-xl mx-auto">
+                  <DollarSign className="w-10 h-10 text-brand-lime mx-auto" />
+                  <h3 className="text-base font-black text-text-primary">Nenhum extrato gerado</h3>
+                  <p className="text-xs text-text-secondary">
+                    Assim que suas propriedades locadas tiverem os aluguéis quitados pelos locatários, os demonstrativos detalhados de repasse líquido aparecerão aqui.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {ownerPayments.map(p => (
+                    <div key={p.id} className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-border">
+                        <div>
+                          <span className="text-[10px] font-black uppercase text-brand-lime">Competência</span>
+                          <h3 className="text-lg font-black text-text-primary">{p.competence} • {p.unitName}</h3>
+                        </div>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          p.status === 'CONCILIADO' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {p.status.replace('_', ' ')}
+                        </span>
                       </div>
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                        p.status === 'CONCILIADO' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-                      }`}>
-                        {p.status.replace('_', ' ')}
-                      </span>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                        <div className="p-3 rounded-xl bg-surface border border-border">
+                          <span className="text-text-secondary block">Aluguel Bruto:</span>
+                          <span className="font-bold text-sm text-text-primary">
+                            R$ {p.expectedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-surface border border-border">
+                          <span className="text-text-secondary block">Taxa Adm i7:</span>
+                          <span className="font-bold text-sm text-text-secondary">
+                            - R$ {p.adminFeeAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-surface border border-border">
+                          <span className="text-text-secondary block">Despesas Abatidas:</span>
+                          <span className="font-bold text-sm text-red-600">
+                            - R$ {p.expensesDeducted.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-brand-lime/10 border border-brand-lime/30">
+                          <span className="text-brand-lime font-bold block">Líquido Repassado:</span>
+                          <span className="font-black text-base text-brand-lime">
+                            R$ {p.transferredAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+
+                      {p.transferReceiptUrl && (
+                        <div className="pt-2 flex justify-end">
+                          <a 
+                            href={p.transferReceiptUrl} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="px-3 py-1.5 rounded-xl bg-surface border border-border text-xs font-bold text-text-primary hover:border-brand-lime flex items-center gap-1.5"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5 text-brand-lime" /> Baixar Comprovante de Repasse (PDF)
+                          </a>
+                        </div>
+                      )}
                     </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                      <div className="p-3 rounded-xl bg-surface border border-border">
-                        <span className="text-text-secondary block">Aluguel Bruto:</span>
-                        <span className="font-bold text-sm text-text-primary">
-                          R$ {p.expectedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-surface border border-border">
-                        <span className="text-text-secondary block">Taxa Adm i7:</span>
-                        <span className="font-bold text-sm text-text-secondary">
-                          - R$ {p.adminFeeAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-surface border border-border">
-                        <span className="text-text-secondary block">Despesas Abatidas:</span>
-                        <span className="font-bold text-sm text-red-600">
-                          - R$ {p.expensesDeducted.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-brand-lime/10 border border-brand-lime/30">
-                        <span className="text-brand-lime font-bold block">Líquido Repassado:</span>
-                        <span className="font-black text-base text-brand-lime">
-                          R$ {p.transferredAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    </div>
-
-                    {p.transferReceiptUrl && (
-                      <div className="pt-2 flex justify-end">
-                        <a 
-                          href={p.transferReceiptUrl} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="px-3 py-1.5 rounded-xl bg-surface border border-border text-xs font-bold text-text-primary hover:border-brand-lime flex items-center gap-1.5"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5 text-brand-lime" /> Baixar Comprovante de Repasse (PDF)
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )
             ) : (
               // Tenant Paid History
-              <div className="space-y-3">
-                {tenantPaidBoletos.map(b => (
-                  <div key={b.id} className="p-5 rounded-2xl bg-white border border-border shadow-sm flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-sm text-text-primary">{b.unitName}</div>
-                      <div className="text-xs text-text-secondary mt-0.5">
-                        Quitado em {b.paidAt} • {b.code}
+              tenantPaidBoletos.length === 0 ? (
+                <div className="p-12 text-center bg-white rounded-3xl border border-border shadow-sm space-y-3 max-w-xl mx-auto">
+                  <Receipt className="w-10 h-10 text-brand-lime mx-auto" />
+                  <h3 className="text-base font-black text-text-primary">Nenhum pagamento registrado</h3>
+                  <p className="text-xs text-text-secondary">
+                    Assim que suas faturas de locação forem quitadas via PIX ou código de barras, os comprovantes e baixas financeiras constarão nesta aba.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {tenantPaidBoletos.map(b => (
+                    <div key={b.id} className="p-5 rounded-2xl bg-white border border-border shadow-sm flex items-center justify-between">
+                      <div>
+                        <div className="font-bold text-sm text-text-primary">{b.unitName}</div>
+                        <div className="text-xs text-text-secondary mt-0.5">
+                          Quitado em {b.paidAt} • {b.code}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="text-right">
-                      <div className="font-black text-sm text-emerald-600">
-                        R$ {b.paidAmount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      <div className="text-right">
+                        <div className="font-black text-sm text-emerald-600">
+                          R$ {b.paidAmount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </div>
+                        <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 justify-end mt-0.5">
+                          <CheckCircle2 className="w-3 h-3" /> Pago com Sucesso
+                        </span>
                       </div>
-                      <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 justify-end mt-0.5">
-                        <CheckCircle2 className="w-3 h-3" /> Pago com Sucesso
-                      </span>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )
             )}
           </div>
         )}
@@ -979,29 +1145,38 @@ export default function PortalUnificadoPage() {
               Histórico de Transferências Bancárias / PIX
             </h2>
 
-            <div className="bg-white rounded-2xl border border-border shadow-sm overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-surface border-b border-border text-text-secondary font-bold uppercase tracking-wider text-[10px]">
-                  <tr>
-                    <th className="p-4">Data do Repasse</th>
-                    <th className="p-4">Competência</th>
-                    <th className="p-4">Unidade</th>
-                    <th className="p-4">Valor Líquido</th>
-                    <th className="p-4">Forma de Envio</th>
-                    <th className="p-4">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {ownerPayments.map(p => (
-                    <tr key={p.id} className="hover:bg-surface/50">
-                      <td className="p-4 font-bold text-text-primary">{p.transferDate || 'Em processamento'}</td>
-                      <td className="p-4">{p.competence}</td>
-                      <td className="p-4 font-bold text-text-primary">{p.unitName}</td>
-                      <td className="p-4 font-black text-blue-600">
-                        R$ {p.transferredAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="p-4 text-text-secondary">Chave PIX (Asaas)</td>
-                      <td className="p-4">
+            {ownerPayments.length === 0 ? (
+              <div className="p-12 text-center bg-white rounded-3xl border border-border shadow-sm space-y-3 max-w-xl mx-auto">
+                <ArrowUpRight className="w-10 h-10 text-brand-lime mx-auto" />
+                <h3 className="text-base font-black text-text-primary">Nenhum repasse bancário até o momento</h3>
+                <p className="text-xs text-text-secondary">
+                  Os comprovantes de transferência bancária via PIX dos seus aluguéis serão arquivados aqui automaticamente a cada repasse efetuado.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-border shadow-sm overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-surface border-b border-border text-text-secondary font-bold uppercase tracking-wider text-[10px]">
+                    <tr>
+                      <th className="p-4">Data do Repasse</th>
+                      <th className="p-4">Competência</th>
+                      <th className="p-4">Unidade</th>
+                      <th className="p-4">Valor Líquido</th>
+                      <th className="p-4">Forma de Envio</th>
+                      <th className="p-4">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {ownerPayments.map(p => (
+                      <tr key={p.id} className="hover:bg-surface/50">
+                        <td className="p-4 font-bold text-text-primary">{p.transferDate || 'Em processamento'}</td>
+                        <td className="p-4">{p.competence}</td>
+                        <td className="p-4 font-bold text-text-primary">{p.unitName}</td>
+                        <td className="p-4 font-black text-blue-600">
+                          R$ {p.transferredAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="p-4 text-text-secondary">Chave PIX (Asaas)</td>
+                        <td className="p-4">
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-700">
                           {p.status === 'CONCILIADO' ? 'Transferido' : 'Pendente'}
                         </span>
@@ -1011,6 +1186,7 @@ export default function PortalUnificadoPage() {
                 </tbody>
               </table>
             </div>
+            )}
           </div>
         )}
 
