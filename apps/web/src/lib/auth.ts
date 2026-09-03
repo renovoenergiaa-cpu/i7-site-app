@@ -484,3 +484,40 @@ export async function resendVerificationCode(emailInput: string): Promise<{ veri
 export function logoutUser() {
   setCurrentSession(null);
 }
+
+// ============================================================================
+// 7. EXCLUSÃO DEFINITIVA DE CONTA (LGPD ART. 18 - DIREITO À ELIMINAÇÃO)
+// ============================================================================
+
+export async function deleteUserAccount(userEmail: string): Promise<boolean> {
+  // 1. Encerra sessão no Supabase Auth
+  try {
+    await supabase.auth.signOut();
+  } catch (e) {
+    console.warn('[Supabase signOut]:', e);
+  }
+
+  if (typeof window !== 'undefined' && userEmail) {
+    // 2. Remove da base de usuários autenticados
+    const localUsers = getLocalAuthUsers().filter(u => u.email.toLowerCase() !== userEmail.toLowerCase());
+    localStorage.setItem(REGISTERED_LOCAL_USERS_KEY, JSON.stringify(localUsers));
+
+    // 3. Remove da base de gestão de usuários do painel administrativo
+    const gestaoUsers = getStoredData<GestaoUser[]>('users', INITIAL_USERS);
+    const updatedUsers = gestaoUsers.filter(u => u.email.toLowerCase() !== userEmail.toLowerCase());
+    saveStoredData('users', updatedUsers);
+
+    // 4. Registra evento formal de auditoria LGPD
+    logAuditEvent(
+      'EXCLUSAO_CONTA_LGPD',
+      'Privacidade & LGPD',
+      `Conta e dados pessoais excluídos definitivamente a pedido do titular: ${userEmail}`,
+      userEmail
+    );
+
+    // 5. Destrói sessão ativa
+    logoutUser();
+  }
+
+  return true;
+}

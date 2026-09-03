@@ -23,6 +23,7 @@ import {
   verifyEmailUser, 
   resendVerificationCode 
 } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 
 function LoginFormContent() {
   const router = useRouter();
@@ -46,7 +47,7 @@ function LoginFormContent() {
   const [successMessage, setSuccessMessage] = useState('');
   const [redirectPath, setRedirectPath] = useState('');
 
-  // Initialize from search params
+  // Initialize from search params and listen to Supabase confirmation link
   useEffect(() => {
     const paramMode = searchParams.get('mode');
     const paramRole = searchParams.get('role');
@@ -56,6 +57,20 @@ function LoginFormContent() {
     if (paramRole === 'OWNER') setRole('OWNER');
     if (paramRole === 'TENANT') setRole('TENANT');
     if (paramRedirect) setRedirectPath(paramRedirect);
+
+    // Captura confirmação automática via link de e-mail do Supabase
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
+        setSuccessMessage('Conta confirmada com sucesso via link do e-mail! Acessando...');
+        setTimeout(() => {
+          window.location.href = '/portal';
+        }, 800);
+      }
+    });
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
   }, [searchParams]);
 
   // Reenviar Código de Ativação
@@ -364,18 +379,9 @@ function LoginFormContent() {
                   />
                 </div>
 
-                <div className="p-3 rounded-xl bg-lime-50 border border-lime-200 text-center space-y-2">
-                  <p className="text-[11px] text-lime-900 leading-snug">
-                    Ambiente de demonstração ou SMTP pendente? Use o <strong>código de liberação rápida</strong>:
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setCode('123456')}
-                    className="w-full py-2 rounded-lg bg-white border border-brand-lime text-brand-lime hover:bg-brand-lime hover:text-white text-xs font-black transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <span>🔑 Inserir Código de Liberação (123456)</span>
-                  </button>
-                </div>
+                <p className="text-[11px] text-text-secondary text-center pt-1">
+                  Enviamos o código de segurança para o seu e-mail. Verifique sua caixa de entrada e pasta de spam.
+                </p>
               </div>
 
               <div className="flex items-center justify-between text-xs pt-1">

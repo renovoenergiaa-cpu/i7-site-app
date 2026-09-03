@@ -29,10 +29,11 @@ import {
   Send,
   Eye,
   LogOut,
+  Trash2,
   Calendar,
   Printer
 } from 'lucide-react';
-import { getCurrentSession, logoutUser, UserSession } from '@/lib/auth';
+import { getCurrentSession, logoutUser, deleteUserAccount, UserSession } from '@/lib/auth';
 import { 
   BuildingUnit, 
   GestaoContract, 
@@ -84,6 +85,10 @@ export default function PortalUnificadoPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+
+  // Delete account state (LGPD)
+  const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   useEffect(() => {
     const s = getCurrentSession();
@@ -228,6 +233,20 @@ export default function PortalUnificadoPage() {
   const handleLogout = () => {
     logoutUser();
     window.location.href = '/login';
+  };
+
+  const handleConfirmDeleteAccount = async () => {
+    if (!session?.user?.email) return;
+    setIsDeletingAccount(true);
+    try {
+      await deleteUserAccount(session.user.email);
+      alert('Sua conta e todos os seus dados cadastrais foram excluídos definitivamente com sucesso em conformidade com a LGPD.');
+      window.location.href = '/login';
+    } catch (err: any) {
+      alert('Erro ao excluir conta: ' + (err.message || 'Tente novamente.'));
+      setIsDeletingAccount(false);
+      setIsDeleteAccountModalOpen(false);
+    }
   };
 
   // Filtered views based on mode and session
@@ -1435,6 +1454,52 @@ export default function PortalUnificadoPage() {
                 </div>
               </form>
             </div>
+
+            {/* Sair da Conta */}
+            <div className="p-6 rounded-2xl bg-white border border-border shadow-sm space-y-3">
+              <h3 className="font-bold text-sm text-text-primary flex items-center gap-2">
+                <LogOut className="w-4 h-4 text-text-secondary" /> Encerrar Sessão
+              </h3>
+              <p className="text-xs text-text-secondary">
+                Deseja desconectar seu usuário com segurança deste computador ou celular?
+              </p>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="px-5 py-2.5 rounded-xl bg-surface border border-border hover:border-red-300 hover:text-red-600 text-text-primary text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sair da Minha Conta</span>
+              </button>
+            </div>
+
+            {/* Zona de Perigo: Excluir Conta Permanentemente (LGPD) */}
+            <div className="p-6 rounded-2xl bg-red-50/60 border border-red-200 shadow-sm space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 rounded-xl bg-red-100 text-red-600 shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-red-700">
+                    Excluir Minha Conta Permanentemente
+                  </h3>
+                  <p className="text-xs text-red-600/90 mt-1 leading-relaxed">
+                    Conforme o Artigo 18 da <strong>Lei Geral de Proteção de Dados (LGPD)</strong>, você pode solicitar a eliminação definitiva dos seus dados pessoais e de acesso à plataforma. Esta operação é <strong>irreversível</strong>.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-red-200">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteAccountModalOpen(true)}
+                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black shadow-sm flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Excluir Minha Conta</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1673,6 +1738,61 @@ export default function PortalUnificadoPage() {
                   Fechar
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmação de Exclusão de Conta (LGPD) */}
+      {isDeleteAccountModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-red-200 max-w-md w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-14 h-14 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto shadow-sm">
+              <Trash2 className="w-7 h-7" />
+            </div>
+
+            <div className="text-center space-y-2">
+              <h3 className="text-lg font-black text-text-primary">
+                Excluir Conta Definitivamente?
+              </h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Você está prestes a excluir permanentemente sua conta vinculada a: <strong className="text-text-primary">{session?.user?.email}</strong>.
+              </p>
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-[11px] text-red-800 text-left space-y-1">
+                <span className="font-bold block">⚠️ Consequências desta ação:</span>
+                <ul className="list-disc list-inside space-y-0.5 text-red-700">
+                  <li>Seu acesso ao Portal e credenciais serão revogados.</li>
+                  <li>Seus dados pessoais serão eliminados da plataforma (Art. 18 LGPD).</li>
+                  <li>Esta ação é <strong>irreversível</strong> e não poderá ser desfeita.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="button"
+                disabled={isDeletingAccount}
+                onClick={() => setIsDeleteAccountModalOpen(false)}
+                className="w-1/2 py-2.5 rounded-xl bg-surface border border-border hover:bg-surface-hover text-xs font-bold text-text-secondary transition-all"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                disabled={isDeletingAccount}
+                onClick={handleConfirmDeleteAccount}
+                className="w-1/2 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black shadow-md flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+              >
+                {isDeletingAccount ? (
+                  <span>Excluindo...</span>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Sim, Excluir</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
