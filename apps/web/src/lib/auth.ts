@@ -343,7 +343,7 @@ export async function registerUser(
   const emailRedirectTo = `${redirectOrigin}/login?mode=confirm&email=${encodeURIComponent(email)}`;
 
   try {
-    await supabase.auth.signUp({
+    const { data: sbData, error: sbError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -355,8 +355,14 @@ export async function registerUser(
         }
       }
     });
-  } catch (sbErr) {
-    console.warn('[Supabase Auth] Fallback local ativado:', sbErr);
+
+    if (sbError) {
+      console.error('[Supabase Auth signUp error]:', sbError);
+      throw new Error(`Erro no Supabase: ${sbError.message}`);
+    }
+  } catch (sbErr: any) {
+    console.error('[Supabase Auth catch]:', sbErr);
+    throw sbErr;
   }
 
   // 2. Dispara e-mail de ativação via API de backup
