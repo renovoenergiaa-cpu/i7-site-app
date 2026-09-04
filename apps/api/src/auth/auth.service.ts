@@ -30,12 +30,12 @@ export class AuthService {
       });
     } catch (error) {
       console.warn('⚠️ Banco de dados offline, simulando cadastro...');
-      const verificationCode = '123456';
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
       console.log(`\n==============================================`);
       console.log(`📧 [CÓDIGO DE VERIFICAÇÃO SIMULADO PARA ${email}]: ${verificationCode}`);
       console.log(`==============================================\n`);
       return {
-        message: 'Cadastro simulado com sucesso! Use o código 123456.',
+        message: 'Cadastro recebido! Verifique seu e-mail para confirmar a conta.',
         email: email,
       };
     }

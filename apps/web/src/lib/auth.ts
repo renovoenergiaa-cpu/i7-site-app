@@ -33,7 +33,6 @@ export const FIXED_USERS = {
     email: 'proprietario@i7.com.br',
     altEmail: 'proprietario@i7imob.com.br',
     password: 'Proprietario@2026',
-    altPassword: '123456',
     user: {
       id: '6f4eeb4f-dae0-4a02-9e22-93e8223684a6',
       name: 'Carlos Alberto Silva',
@@ -48,7 +47,6 @@ export const FIXED_USERS = {
     email: 'locatario@i7.com.br',
     altEmail: 'inquilino@i7.com.br',
     password: 'Locatario@2026',
-    altPassword: '123456',
     user: {
       id: '27302d3f-8afb-4c1e-8ea2-249614051d08',
       name: 'Mariana Costa Tech',
@@ -183,7 +181,7 @@ export async function loginUser(emailInput: string, passwordInput: string): Prom
 
   // 2. Verificação do Proprietário Titular Oficial
   if (email === FIXED_USERS.owner.email.toLowerCase() || email === FIXED_USERS.owner.altEmail.toLowerCase()) {
-    if (password === FIXED_USERS.owner.password || password === FIXED_USERS.owner.altPassword) {
+    if (password === FIXED_USERS.owner.password) {
       const session: UserSession = {
         user: {
           id: FIXED_USERS.owner.user.id,
@@ -206,7 +204,7 @@ export async function loginUser(emailInput: string, passwordInput: string): Prom
 
   // 3. Verificação do Inquilino Titular Oficial
   if (email === FIXED_USERS.tenant.email.toLowerCase() || email === FIXED_USERS.tenant.altEmail.toLowerCase()) {
-    if (password === FIXED_USERS.tenant.password || password === FIXED_USERS.tenant.altPassword) {
+    if (password === FIXED_USERS.tenant.password) {
       const session: UserSession = {
         user: {
           id: FIXED_USERS.tenant.user.id,
@@ -340,12 +338,16 @@ export async function registerUser(
 
   saveLocalAuthUser(newUser);
 
-  // 1. Dispara o envio oficial de e-mail OTP pelo Supabase Auth
+  // 1. Dispara o envio oficial de e-mail OTP / Magic Link pelo Supabase Auth
+  const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+  const emailRedirectTo = `${redirectOrigin}/login?mode=confirm&email=${encodeURIComponent(email)}`;
+
   try {
     await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo,
         data: {
           name: name.trim(),
           role,
@@ -372,7 +374,7 @@ export async function registerUser(
   );
 
   return {
-    message: `Código de verificação de 6 dígitos enviado para ${email}.`,
+    message: `Confirmação de segurança enviada para ${email}. Clique no link do e-mail ou digite o código de 6 dígitos.`,
     email,
     verificationCode
   };
@@ -401,22 +403,22 @@ export async function verifyEmailUser(emailInput: string, codeInput: string): Pr
       token: code,
       type: 'signup'
     });
-    if (!error && data?.session) {
+    if (!error && (data?.session || data?.user)) {
       isSupabaseVerified = true;
     }
   } catch (e) {
     // Continua para o fallback de contingência
   }
 
-  // 2. Validação: Confere Supabase, código gerado ou código mestre de contingência
-  const isMatch = isSupabaseVerified || (user && user.verificationCode === code) || code === '123456';
+  // 2. Validação estrita: confere Supabase OTP ou código individual gerado no cadastro
+  const isMatch = isSupabaseVerified || (user && user.verificationCode === code);
 
   if (!isMatch && !user) {
     throw new Error('Código incorreto ou expirado. Verifique seu e-mail e tente novamente.');
   }
 
   if (!isMatch) {
-    throw new Error('Código de verificação incorreto. Verifique seu e-mail ou use a liberação rápida.');
+    throw new Error('Código de verificação incorreto. Verifique seu e-mail ou clique no link de ativação.');
   }
 
   // Ativa a conta definitivamente
@@ -424,7 +426,7 @@ export async function verifyEmailUser(emailInput: string, codeInput: string): Pr
     user.verified = true;
     user.verificationCode = undefined;
     saveLocalAuthUser(user);
-    logAuditEvent('CONTA_ATIVADA', 'Segurança & Contas', `Conta ativada com sucesso via validação de e-mail: ${user.name} (${user.email})`, user.email);
+    logAuditEvent('CONTA_ATIVADA', 'Segurança & Contas', `Conta ativada com sucesso via código de e-mail: ${user.name} (${user.email})`, user.email);
   }
 
   const session: UserSession = {
@@ -441,11 +443,130 @@ export async function verifyEmailUser(emailInput: string, codeInput: string): Pr
   };
 
   setCurrentSession(session);
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('i7_auth_confirmed_event', JSON.stringify({ email, timestamp: Date.now() }));
+    } catch {}
+  }
+
   return session;
 }
 
 // ============================================================================
-// 6. REENVIAR CÓDIGO DE ATIVAÇÃO
+// 6. CONFIRMAÇÃO VIA LINK DE E-MAIL DO SUPABASE (MAGIC LINK / REDIRECT)
+// ============================================================================
+
+export const AUTH_CONFIRMED_EVENT_KEY = 'i7_auth_confirmed_event';
+
+export async function confirmUserFromSupabase(emailInput: string, supabaseUser?: any): Promise<UserSession> {
+  const email = emailInput.trim().toLowerCase();
+  const localUsers = getLocalAuthUsers();
+  let user = localUsers.find(u => u.email.toLowerCase() === email);
+
+  if (user) {
+    user.verified = true;
+    user.verificationCode = undefined;
+    saveLocalAuthUser(user);
+    logAuditEvent('CONTA_ATIVADA_LINK', 'Segurança & Contas', `Conta ativada com sucesso via link de e-mail: ${user.name} (${user.email})`, user.email);
+  } else {
+    const roleMeta = supabaseUser?.user_metadata?.role || 'TENANT';
+    const role = (roleMeta === 'OWNER' ? 'OWNER' : 'TENANT') as 'ADMIN' | 'OWNER' | 'TENANT';
+    const name = supabaseUser?.user_metadata?.name || email.split('@')[0];
+    const phone = supabaseUser?.user_metadata?.phone || '(15) 99999-0000';
+
+    user = {
+      id: supabaseUser?.id || `usr-${Date.now()}`,
+      name,
+      email,
+      password: '',
+      phone,
+      role,
+      verified: true,
+      createdAt: new Date().toISOString()
+    };
+    saveLocalAuthUser(user);
+    logAuditEvent('CONTA_ATIVADA_LINK', 'Segurança & Contas', `Nova conta ativada via link Supabase: ${user.name} (${user.email})`, user.email);
+  }
+
+  const session: UserSession = {
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone || '(15) 99999-0000',
+      role: (user.role || UserRole.TENANT) as UserRole,
+      verified: true,
+      createdAt: user.createdAt,
+    },
+    accessToken: `jwt_verified_session_${Date.now()}`
+  };
+
+  setCurrentSession(session);
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(AUTH_CONFIRMED_EVENT_KEY, JSON.stringify({ email, timestamp: Date.now() }));
+    } catch {}
+  }
+
+  return session;
+}
+
+// ============================================================================
+// 7. VERIFICAÇÃO DE STATUS EM SEGUNDO PLANO (POLLING / RECONCILIAÇÃO)
+// ============================================================================
+
+export async function checkUserVerificationStatus(emailInput: string): Promise<UserSession | null> {
+  const email = emailInput.trim().toLowerCase();
+  if (!email) return null;
+
+  // 1. Checa no banco de dados local
+  const localUsers = getLocalAuthUsers();
+  const user = localUsers.find(u => u.email.toLowerCase() === email);
+  if (user && user.verified) {
+    const session: UserSession = {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '(15) 99999-0000',
+        role: (user.role || UserRole.TENANT) as UserRole,
+        verified: true,
+        createdAt: user.createdAt,
+      },
+      accessToken: `jwt_verified_session_${Date.now()}`
+    };
+    setCurrentSession(session);
+    return session;
+  }
+
+  // 2. Checa se o Supabase já registrou confirmação por e-mail
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData?.session?.user) {
+      const sbEmail = sessionData.session.user.email?.toLowerCase();
+      if (!email || sbEmail === email) {
+        return await confirmUserFromSupabase(sbEmail || email, sessionData.session.user);
+      }
+    }
+
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData?.user) {
+      const sbEmail = userData.user.email?.toLowerCase();
+      if (userData.user.email_confirmed_at && (!email || sbEmail === email)) {
+        return await confirmUserFromSupabase(sbEmail || email, userData.user);
+      }
+    }
+  } catch (e) {
+    // Silencia erros de rede ou sessão vazia
+  }
+
+  return null;
+}
+
+// ============================================================================
+// 8. REENVIAR CÓDIGO DE ATIVAÇÃO / LINK
 // ============================================================================
 
 export async function resendVerificationCode(emailInput: string): Promise<{ verificationCode: string }> {
@@ -453,11 +574,17 @@ export async function resendVerificationCode(emailInput: string): Promise<{ veri
   const localUsers = getLocalAuthUsers();
   const user = localUsers.find(u => u.email.toLowerCase() === email);
 
+  const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+  const emailRedirectTo = `${redirectOrigin}/login?mode=confirm&email=${encodeURIComponent(email)}`;
+
   // Tenta reenvio pelo Supabase Auth
   try {
     await supabase.auth.resend({
       type: 'signup',
-      email
+      email,
+      options: {
+        emailRedirectTo
+      }
     });
   } catch (e) {
     console.warn('[Supabase Resend] Fallback:', e);
