@@ -154,25 +154,7 @@ function LoginFormContent() {
     };
   }, [searchParams]);
 
-  // 2. Polling ativo enquanto estiver na tela de verificação (se o usuário clicar no link em outra aba)
-  useEffect(() => {
-    if (mode !== 'verify' || !email) return;
-
-    const interval = setInterval(async () => {
-      const verifiedSession = await checkUserVerificationStatus(email);
-      if (verifiedSession) {
-        setSuccessMessage('E-mail confirmado com sucesso! Redirecionando...');
-        clearInterval(interval);
-        setTimeout(() => {
-          redirectToPortal(verifiedSession.user.role);
-        }, 600);
-      }
-    }, 2500);
-
-    return () => clearInterval(interval);
-  }, [mode, email]);
-
-  // Reenviar Código / Link de Ativação
+  // Reenviar Código de Ativação
   const handleResendCode = async () => {
     if (!email) {
       setErrorMessage('Informe o e-mail para receber a confirmação.');
@@ -182,33 +164,11 @@ function LoginFormContent() {
     setErrorMessage('');
     try {
       await resendVerificationCode(email);
-      setSuccessMessage(`Enviamos uma nova confirmação para ${email}.`);
+      setSuccessMessage(`Enviamos um novo código para ${email}.`);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Não foi possível reenviar.');
+      setErrorMessage(err.message || 'Não foi possível reenviar o código.');
     } finally {
       setResending(false);
-    }
-  };
-
-  // Checagem manual imediata caso o usuário tenha clicado no e-mail
-  const handleCheckManualStatus = async () => {
-    if (!email) return;
-    setLoading(true);
-    setErrorMessage('');
-    try {
-      const verifiedSession = await checkUserVerificationStatus(email);
-      if (verifiedSession) {
-        setSuccessMessage('E-mail confirmado! Acessando seu portal...');
-        setTimeout(() => {
-          redirectToPortal(verifiedSession.user.role);
-        }, 600);
-      } else {
-        setErrorMessage('Ainda não detectamos a confirmação. Clique no link do e-mail ou digite o código de 6 dígitos.');
-      }
-    } catch (e: any) {
-      setErrorMessage(e.message || 'Falha ao verificar status.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -233,25 +193,16 @@ function LoginFormContent() {
         setCode('');
 
       } else if (mode === 'verify') {
-        // Se o usuário digitou código, valida o código
-        if (code.trim().length >= 6) {
-          const session = await verifyEmailUser(email, code);
-          setSuccessMessage('Conta verificada e ativada com sucesso! Acessando seu ambiente...');
-          setTimeout(() => {
-            redirectToPortal(session.user.role);
-          }, 800);
-        } else {
-          // Se não digitou código, tenta checar se já confirmou pelo link do e-mail
-          const session = await checkUserVerificationStatus(email);
-          if (session) {
-            setSuccessMessage('E-mail confirmado! Entrando...');
-            setTimeout(() => {
-              redirectToPortal(session.user.role);
-            }, 600);
-          } else {
-            throw new Error('Digite o código de 6 dígitos ou confirme pelo link enviado ao seu e-mail.');
-          }
+        // Validação estrita do código numérico de 6 dígitos
+        if (!code.trim() || code.trim().length < 6) {
+          throw new Error('Digite o código numérico de 6 dígitos que você recebeu por e-mail.');
         }
+
+        const session = await verifyEmailUser(email, code.trim());
+        setSuccessMessage('Código validado com sucesso! Acessando seu ambiente...');
+        setTimeout(() => {
+          redirectToPortal(session.user.role);
+        }, 800);
 
       } else {
         // Modo Login Estrito
@@ -300,7 +251,7 @@ function LoginFormContent() {
           <p className="text-xs text-text-secondary max-w-xs mx-auto">
             {mode === 'login' && 'Informe suas credenciais para acessar seu ambiente seguro'}
             {mode === 'register' && 'Cadastre-se na plataforma para gerenciar seus contratos e pagamentos'}
-            {mode === 'verify' && `Enviamos a confirmação de segurança para o e-mail: ${email || 'seu e-mail'}`}
+            {mode === 'verify' && `Digite o código de 6 dígitos enviado para: ${email || 'seu e-mail'}`}
           </p>
         </div>
 
@@ -478,62 +429,31 @@ function LoginFormContent() {
                 </div>
               </div>
 
-              {/* Opção 1: Confirmação via Link do Supabase */}
-              <div className="p-4 rounded-2xl bg-brand-lime/10 border border-brand-lime/30 space-y-2.5">
-                <div className="flex items-start gap-2.5">
-                  <div className="p-1.5 rounded-lg bg-brand-lime text-white shrink-0 mt-0.5">
-                    <CheckCircle2 className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-black text-text-primary">Confirmação por Link (Supabase)</h3>
-                    <p className="text-[11px] text-text-secondary leading-relaxed mt-0.5">
-                      Abra o e-mail de confirmação que enviamos e <strong>clique no botão ou link</strong>. A sua conta será ativada e o acesso será liberado automaticamente.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleCheckManualStatus}
-                  disabled={loading}
-                  className="w-full py-2.5 px-3 rounded-xl bg-white border border-brand-lime/40 text-brand-lime hover:bg-brand-lime hover:text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                  <span>Já cliquei no link do e-mail (Verificar Agora)</span>
-                </button>
-              </div>
-
-              {/* Divisor */}
-              <div className="relative flex items-center justify-center my-1">
-                <div className="border-t border-border w-full"></div>
-                <span className="bg-white px-3 text-[10px] font-bold text-text-secondary uppercase tracking-widest absolute">
-                  Ou digite o código
-                </span>
-              </div>
-
-              {/* Opção 2: Código numérico de 6 dígitos */}
-              <div className="space-y-1.5">
+              {/* Digite o Código de 6 Dígitos */}
+              <div className="space-y-2 pt-1">
                 <label className="text-xs font-black text-text-primary uppercase tracking-wide block text-center">
-                  Código de 6 Dígitos (se recebido):
+                  Digite o Código de 6 Dígitos:
                 </label>
-                <div className="flex items-center gap-2 bg-surface border-2 border-brand-lime rounded-2xl px-4 py-3 shadow-sm">
-                  <KeyRound className="w-5 h-5 text-brand-lime shrink-0" />
+                <div className="flex items-center gap-2 bg-surface border-2 border-brand-lime rounded-2xl px-4 py-3.5 shadow-sm">
+                  <KeyRound className="w-6 h-6 text-brand-lime shrink-0" />
                   <input 
                     type="text" 
                     placeholder="000000"
                     maxLength={6}
+                    autoFocus
                     value={code}
                     onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                    className="w-full bg-transparent text-2xl tracking-[0.35em] font-black text-brand-lime text-center focus:outline-none"
+                    className="w-full bg-transparent text-3xl tracking-[0.35em] font-black text-brand-lime text-center focus:outline-none"
+                    required
                   />
                 </div>
 
-                <p className="text-[10px] text-text-secondary text-center">
-                  Se o seu e-mail trouxer o código PIN de 6 dígitos, digite acima para validar.
+                <p className="text-[11px] text-text-secondary text-center pt-1 leading-relaxed">
+                  Enviamos o código de segurança para seu e-mail. Digite os 6 números acima para liberar seu acesso.
                 </p>
               </div>
 
-              <div className="flex items-center justify-between text-xs pt-1">
+              <div className="flex items-center justify-between text-xs pt-2">
                 <button
                   type="button"
                   disabled={resending}
@@ -541,7 +461,7 @@ function LoginFormContent() {
                   className="font-bold text-brand-lime hover:underline flex items-center gap-1 disabled:opacity-50"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
-                  <span>Reenviar e-mail de confirmação</span>
+                  <span>Reenviar código</span>
                 </button>
 
                 <button
@@ -567,8 +487,8 @@ function LoginFormContent() {
             ) : (
               <>
                 {mode === 'login' && 'Entrar na Plataforma'}
-                {mode === 'register' && 'Cadastrar & Enviar Confirmação'}
-                {mode === 'verify' && (code ? 'Validar Código e Entrar' : 'Confirmar e Entrar')}
+                {mode === 'register' && 'Cadastrar & Enviar Código'}
+                {mode === 'verify' && 'Validar Código e Entrar'}
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
