@@ -10,6 +10,7 @@ export interface BuildingUnit {
   rentValue: number;
   condoValue: number;
   iptuValue: number;
+  adminFeeValue?: number;
   status: 'LOCADO' | 'DISPONIVEL' | 'PAUSADO' | 'REFORMA' | 'PENDENTE_AVALIACAO' | 'REPROVADO';
   ownerName: string;
   ownerEmail: string;

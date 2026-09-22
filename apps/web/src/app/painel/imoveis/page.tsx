@@ -64,16 +64,16 @@ export default function PainelImoveisPage() {
   const [formLatitude, setFormLatitude] = useState(-23.5285);
   const [formLongitude, setFormLongitude] = useState(-47.4645);
 
-  // Valores
-  const [formRent, setFormRent] = useState<number>(3500);
-  const [formCondo, setFormCondo] = useState<number>(550);
-  const [formIptu, setFormIptu] = useState<number>(180);
+  // Valores (como string para evitar '0' travado ao digitar/apagar)
+  const [formRent, setFormRent] = useState<string>('');
+  const [formCondo, setFormCondo] = useState<string>('');
+  const [formAdminFee, setFormAdminFee] = useState<string>('');
 
   // Características
-  const [formArea, setFormArea] = useState<number>(75);
-  const [formBedrooms, setFormBedrooms] = useState<number>(2);
-  const [formBathrooms, setFormBathrooms] = useState<number>(2);
-  const [formParking, setFormParking] = useState<number>(1);
+  const [formArea, setFormArea] = useState<string>('');
+  const [formBedrooms, setFormBedrooms] = useState<string>('1');
+  const [formBathrooms, setFormBathrooms] = useState<string>('1');
+  const [formParking, setFormParking] = useState<string>('0');
   const [formFurnished, setFormFurnished] = useState(false);
   const [formPetFriendly, setFormPetFriendly] = useState(true);
 
@@ -156,20 +156,17 @@ export default function PainelImoveisPage() {
     setFormZipCode('18047-620');
     setFormLatitude(-23.5285);
     setFormLongitude(-47.4645);
-    setFormRent(3500);
-    setFormCondo(550);
-    setFormIptu(180);
-    setFormArea(75);
-    setFormBedrooms(2);
-    setFormBathrooms(2);
-    setFormParking(1);
+    setFormRent('');
+    setFormCondo('');
+    setFormAdminFee('');
+    setFormArea('');
+    setFormBedrooms('1');
+    setFormBathrooms('1');
+    setFormParking('0');
     setFormFurnished(false);
     setFormPetFriendly(true);
-    setFormDescription('Excelente imóvel para locação na i7 Inteligência Imobiliária. Acabamento moderno, ótima iluminação natural, localização privilegiada com fácil acesso a comércios e avenidas principais.');
-    setFormPhotos([
-      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1000',
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1000'
-    ]);
+    setFormDescription('');
+    setFormPhotos([]);
     setPublishImmediately(true);
     setFormOwnerName('i7 Inteligência Imobiliária');
     setFormOwnerEmail('admin@i7.com.br');
@@ -195,13 +192,13 @@ export default function PainelImoveisPage() {
     setFormZipCode(unit.zipCode || '18000-000');
     setFormLatitude(unit.latitude || -23.5285);
     setFormLongitude(unit.longitude || -47.4645);
-    setFormRent(unit.rentValue || 3000);
-    setFormCondo(unit.condoValue || 450);
-    setFormIptu(unit.iptuValue || 150);
-    setFormArea(unit.areaSqm || 60);
-    setFormBedrooms(unit.bedrooms || 1);
-    setFormBathrooms(unit.bathrooms || 1);
-    setFormParking(unit.parkingSpaces || 1);
+    setFormRent(unit.rentValue ? String(unit.rentValue) : '');
+    setFormCondo(unit.condoValue ? String(unit.condoValue) : '');
+    setFormAdminFee((unit.adminFeeValue ?? unit.iptuValue) ? String(unit.adminFeeValue ?? unit.iptuValue) : '');
+    setFormArea(unit.areaSqm ? String(unit.areaSqm) : '');
+    setFormBedrooms(unit.bedrooms ? String(unit.bedrooms) : '1');
+    setFormBathrooms(unit.bathrooms ? String(unit.bathrooms) : '1');
+    setFormParking(unit.parkingSpaces !== undefined ? String(unit.parkingSpaces) : '0');
     setFormFurnished(!!unit.furnished);
     setFormPetFriendly(unit.petFriendly !== false);
     setFormDescription(unit.description || '');
@@ -302,7 +299,7 @@ export default function PainelImoveisPage() {
     const tipoFormatado = formType === 'APARTAMENTO' ? 'Apartamento' : formType === 'STUDIO' ? 'Studio contemporâneo' : formType === 'CASA' ? 'Casa residencial' : 'Excelente imóvel comercial';
     const mobiliadoStr = formFurnished ? 'Totalmente mobiliado com armários planejados de alto padrão' : 'Excelente iluminação natural e ambientes amplos e arejados';
     const petStr = formPetFriendly ? 'Condomínio Pet Friendly para o conforto do seu animal de estimação.' : '';
-    const vagasStr = formParking > 0 ? `${formParking} vaga(s) de garagem coberta(s)` : 'Sem vaga privativa';
+    const vagasStr = Number(formParking) > 0 ? `${formParking} vaga(s) de garagem coberta(s)` : 'Sem vaga privativa';
 
     const desc = `${tipoFormatado} disponível para locação no bairro ${formNeighborhood}, em ${formCity} - ${formState}. Com ${formArea}m² de área útil, conta com ${formBedrooms} dormitório(s) (sendo suíte), ${formBathrooms} banheiro(s) e ${vagasStr}. ${mobiliadoStr}. Localização privilegiada com fácil acesso a comércios, restaurantes, escolas e vias rápidas da cidade. ${petStr} Gestão com a garantia e agilidade da i7 Inteligência Imobiliária. Agende sua visita presencial ou por vídeo!`;
     
@@ -328,7 +325,7 @@ export default function PainelImoveisPage() {
       return;
     }
 
-    if (!formRent || formRent <= 0) {
+    if (!formRent || Number(formRent) <= 0) {
       alert('Por favor, informe um valor de aluguel válido.');
       return;
     }
@@ -356,13 +353,14 @@ export default function PainelImoveisPage() {
             buildingName: formBuilding || formTitle,
             unitNumber: formUnitNumber || formTitle,
             floor: formFloor || 'Padrão',
-            areaSqm: Number(formArea) || 60,
-            rentValue: Number(formRent) || 3000,
+            areaSqm: Number(formArea) || 0,
+            rentValue: Number(formRent) || 0,
             condoValue: Number(formCondo) || 0,
-            iptuValue: Number(formIptu) || 0,
+            iptuValue: Number(formAdminFee) || 0,
+            adminFeeValue: Number(formAdminFee) || 0,
             status: targetStatus as any,
-            bedrooms: Number(formBedrooms) || 1,
-            bathrooms: Number(formBathrooms) || 1,
+            bedrooms: Number(formBedrooms) || 0,
+            bathrooms: Number(formBathrooms) || 0,
             parkingSpaces: Number(formParking) || 0,
             furnished: formFurnished,
             petFriendly: formPetFriendly,
@@ -409,13 +407,14 @@ export default function PainelImoveisPage() {
         buildingName: formBuilding || formTitle,
         unitNumber: formUnitNumber || formTitle,
         floor: formFloor || 'Padrão',
-        areaSqm: Number(formArea) || 60,
-        rentValue: Number(formRent) || 3000,
+        areaSqm: Number(formArea) || 0,
+        rentValue: Number(formRent) || 0,
         condoValue: Number(formCondo) || 0,
-        iptuValue: Number(formIptu) || 0,
+        iptuValue: Number(formAdminFee) || 0,
+        adminFeeValue: Number(formAdminFee) || 0,
         status: targetStatus as any,
-        bedrooms: Number(formBedrooms) || 1,
-        bathrooms: Number(formBathrooms) || 1,
+        bedrooms: Number(formBedrooms) || 0,
+        bathrooms: Number(formBathrooms) || 0,
         parkingSpaces: Number(formParking) || 0,
         furnished: formFurnished,
         petFriendly: formPetFriendly,
@@ -788,7 +787,7 @@ export default function PainelImoveisPage() {
                     {/* Encargos & Total */}
                     <div className="mt-3 flex items-center justify-between text-xs text-text-secondary bg-surface-hover p-2.5 rounded-xl">
                       <div>
-                        <span className="text-[10px] text-text-muted block">Cond. + IPTU</span>
+                        <span className="text-[10px] text-text-muted block">Cond. + Taxa Adm.</span>
                         <span className="font-bold text-text-primary">
                           R$ {((unit.condoValue || 0) + (unit.iptuValue || 0)).toLocaleString('pt-BR')}
                         </span>
@@ -1091,10 +1090,10 @@ export default function PainelImoveisPage() {
                       <input
                         type="number"
                         required
-                        min="100"
-                        step="50"
+                        min="0"
+                        placeholder="0,00"
                         value={formRent}
-                        onChange={(e) => setFormRent(Number(e.target.value))}
+                        onChange={(e) => setFormRent(e.target.value)}
                         className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-black text-text-primary focus:outline-none focus:border-brand-lime"
                       />
                     </div>
@@ -1109,9 +1108,9 @@ export default function PainelImoveisPage() {
                       <input
                         type="number"
                         min="0"
-                        step="10"
+                        placeholder="0,00"
                         value={formCondo}
-                        onChange={(e) => setFormCondo(Number(e.target.value))}
+                        onChange={(e) => setFormCondo(e.target.value)}
                         className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-bold text-text-primary focus:outline-none focus:border-brand-lime"
                       />
                     </div>
@@ -1119,16 +1118,16 @@ export default function PainelImoveisPage() {
 
                   <div>
                     <label className="text-xs font-bold text-text-primary block mb-1">
-                      IPTU Mensal (R$)
+                      Taxa de Administração (R$)
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-text-muted">R$</span>
                       <input
                         type="number"
                         min="0"
-                        step="10"
-                        value={formIptu}
-                        onChange={(e) => setFormIptu(Number(e.target.value))}
+                        placeholder="0,00"
+                        value={formAdminFee}
+                        onChange={(e) => setFormAdminFee(e.target.value)}
                         className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-bold text-text-primary focus:outline-none focus:border-brand-lime"
                       />
                     </div>
@@ -1140,20 +1139,20 @@ export default function PainelImoveisPage() {
                   <div className="text-center sm:text-left">
                     <span className="text-xs text-text-secondary block">Total Mensal para o Locatário:</span>
                     <span className="text-xl font-black text-brand-lime">
-                      R$ {(formRent + formCondo + formIptu + Math.round(formRent * 0.08)).toLocaleString('pt-BR')}/mês
+                      R$ {((Number(formRent) || 0) + (Number(formCondo) || 0) + (Number(formAdminFee) || 0)).toLocaleString('pt-BR')}/mês
                     </span>
                     <span className="text-[10px] text-text-muted block">
-                      (Aluguel + Condomínio + IPTU + Taxa de Serviço i7 8%)
+                      (Aluguel + Condomínio + Taxa de Administração)
                     </span>
                   </div>
 
                   <div className="text-center sm:text-right border-t sm:border-t-0 sm:border-l border-border pt-2 sm:pt-0 sm:pl-4">
                     <span className="text-xs text-text-secondary block">Repasse Líquido Estimado:</span>
                     <span className="text-base font-black text-emerald-600">
-                      R$ {(formRent - Math.round(formRent * 0.08)).toLocaleString('pt-BR')}/mês
+                      R$ {Math.max(0, (Number(formRent) || 0) - (Number(formAdminFee) || 0)).toLocaleString('pt-BR')}/mês
                     </span>
                     <span className="text-[10px] text-text-muted block">
-                      (Aluguel descontada taxa de administração)
+                      (Aluguel deduzida a taxa de administração)
                     </span>
                   </div>
                 </div>
@@ -1173,9 +1172,10 @@ export default function PainelImoveisPage() {
                     </label>
                     <input
                       type="number"
-                      min="10"
+                      min="0"
+                      placeholder="Ex: 75"
                       value={formArea}
-                      onChange={(e) => setFormArea(Number(e.target.value))}
+                      onChange={(e) => setFormArea(e.target.value)}
                       className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-bold text-text-primary focus:outline-none focus:border-brand-lime"
                     />
                   </div>
@@ -1187,8 +1187,9 @@ export default function PainelImoveisPage() {
                     <input
                       type="number"
                       min="0"
+                      placeholder="0"
                       value={formBedrooms}
-                      onChange={(e) => setFormBedrooms(Number(e.target.value))}
+                      onChange={(e) => setFormBedrooms(e.target.value)}
                       className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-bold text-text-primary focus:outline-none focus:border-brand-lime"
                     />
                   </div>
@@ -1199,9 +1200,10 @@ export default function PainelImoveisPage() {
                     </label>
                     <input
                       type="number"
-                      min="1"
+                      min="0"
+                      placeholder="0"
                       value={formBathrooms}
-                      onChange={(e) => setFormBathrooms(Number(e.target.value))}
+                      onChange={(e) => setFormBathrooms(e.target.value)}
                       className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-bold text-text-primary focus:outline-none focus:border-brand-lime"
                     />
                   </div>
@@ -1213,8 +1215,9 @@ export default function PainelImoveisPage() {
                     <input
                       type="number"
                       min="0"
+                      placeholder="0"
                       value={formParking}
-                      onChange={(e) => setFormParking(Number(e.target.value))}
+                      onChange={(e) => setFormParking(e.target.value)}
                       className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-bold text-text-primary focus:outline-none focus:border-brand-lime"
                     />
                   </div>

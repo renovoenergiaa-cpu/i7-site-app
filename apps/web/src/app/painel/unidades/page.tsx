@@ -40,9 +40,9 @@ export default function UnidadesPage() {
   // Modal de Avaliação & Parecer do Administrador
   const [evaluatingUnit, setEvaluatingUnit] = useState<BuildingUnit | null>(null);
   const [adminFeedback, setAdminFeedback] = useState('');
-  const [adjustedRent, setAdjustedRent] = useState<number>(0);
-  const [adjustedCondo, setAdjustedCondo] = useState<number>(0);
-  const [adjustedIptu, setAdjustedIptu] = useState<number>(0);
+  const [adjustedRent, setAdjustedRent] = useState<string>('');
+  const [adjustedCondo, setAdjustedCondo] = useState<string>('');
+  const [adjustedIptu, setAdjustedIptu] = useState<string>('');
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
 
   // Form state for new unit / building
@@ -56,10 +56,10 @@ export default function UnidadesPage() {
   const [newUnitNumber, setNewUnitNumber] = useState('');
   const [newType, setNewType] = useState<'SALA' | 'APARTAMENTO' | 'STUDIO' | 'LOJA' | 'CASA'>('APARTAMENTO');
   const [newFloor, setNewFloor] = useState('');
-  const [newArea, setNewArea] = useState(0);
-  const [newRent, setNewRent] = useState(0);
-  const [newCondo, setNewCondo] = useState(0);
-  const [newIptu, setNewIptu] = useState(0);
+  const [newArea, setNewArea] = useState<string>('');
+  const [newRent, setNewRent] = useState<string>('');
+  const [newCondo, setNewCondo] = useState<string>('');
+  const [newIptu, setNewIptu] = useState<string>('');
   const [newOwnerName, setNewOwnerName] = useState('');
   const [newOwnerEmail, setNewOwnerEmail] = useState('');
   const [newOwnerPhone, setNewOwnerPhone] = useState('');
@@ -75,22 +75,27 @@ export default function UnidadesPage() {
 
   const handleOpenEvaluation = (unit: BuildingUnit) => {
     setEvaluatingUnit(unit);
-    setAdjustedRent(unit.rentValue);
-    setAdjustedCondo(unit.condoValue);
-    setAdjustedIptu(unit.iptuValue);
+    setAdjustedRent(unit.rentValue ? String(unit.rentValue) : '');
+    setAdjustedCondo(unit.condoValue ? String(unit.condoValue) : '');
+    setAdjustedIptu((unit.adminFeeValue ?? unit.iptuValue) ? String(unit.adminFeeValue ?? unit.iptuValue) : '');
     setAdminFeedback(unit.adminFeedback || '');
   };
 
   // Aprovar e Publicar Anúncio no Site
   const handleApproveAndPublish = (unit: BuildingUnit) => {
+    const rentNum = Number(adjustedRent);
+    const condoNum = Number(adjustedCondo);
+    const adminFeeNum = Number(adjustedIptu);
+
     const updated = units.map(u => {
       if (u.id === unit.id) {
         return {
           ...u,
           status: 'DISPONIVEL' as const,
-          rentValue: adjustedRent > 0 ? adjustedRent : u.rentValue,
-          condoValue: adjustedCondo >= 0 ? adjustedCondo : u.condoValue,
-          iptuValue: adjustedIptu >= 0 ? adjustedIptu : u.iptuValue,
+          rentValue: rentNum > 0 ? rentNum : u.rentValue,
+          condoValue: !isNaN(condoNum) ? condoNum : u.condoValue,
+          iptuValue: !isNaN(adminFeeNum) ? adminFeeNum : u.iptuValue,
+          adminFeeValue: !isNaN(adminFeeNum) ? adminFeeNum : (u.adminFeeValue ?? u.iptuValue),
           adminFeedback: adminFeedback || 'Imóvel avaliado e aprovado pela equipe técnica i7 para locação.',
           evaluationDate: new Date().toLocaleDateString('pt-BR')
         };
@@ -154,10 +159,11 @@ export default function UnidadesPage() {
       unitNumber: newUnitNumber,
       type: newType,
       floor: newFloor || '1º Andar',
-      areaSqm: Number(newArea),
-      rentValue: Number(newRent),
-      condoValue: Number(newCondo),
-      iptuValue: Number(newIptu),
+      areaSqm: Number(newArea) || 0,
+      rentValue: Number(newRent) || 0,
+      condoValue: Number(newCondo) || 0,
+      iptuValue: Number(newIptu) || 0,
+      adminFeeValue: Number(newIptu) || 0,
       status: 'DISPONIVEL',
       ownerName: newOwnerName,
       ownerEmail: newOwnerEmail,
@@ -178,6 +184,14 @@ export default function UnidadesPage() {
       `Prédio/Unidade "${finalBuildingName} - ${newUnitNumber}" cadastrado com sucesso pelo administrador.`,
       newOwnerEmail
     );
+
+    setIsModalOpen(false);
+    setNewUnitNumber('');
+    setNewFloor('');
+    setNewArea('');
+    setNewRent('');
+    setNewCondo('');
+    setNewIptu('');
 
     setIsModalOpen(false);
     setNewUnitNumber('');
@@ -468,7 +482,7 @@ export default function UnidadesPage() {
                     <span className="font-bold text-text-primary">R$ {unit.rentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-text-secondary">Condomínio + IPTU:</span>
+                    <span className="text-text-secondary">Condomínio + Taxa Adm.:</span>
                     <span className="font-bold text-text-primary">R$ {(unit.condoValue + unit.iptuValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="pt-2 border-t border-border flex items-center justify-between font-black">
@@ -668,8 +682,9 @@ export default function UnidadesPage() {
                   <DollarSign className="w-4 h-4 text-brand-lime shrink-0" />
                   <input 
                     type="number"
+                    placeholder="0,00"
                     value={adjustedRent}
-                    onChange={(e) => setAdjustedRent(Number(e.target.value))}
+                    onChange={(e) => setAdjustedRent(e.target.value)}
                     className="w-full bg-transparent text-sm font-bold text-text-primary focus:outline-none"
                   />
                 </div>
@@ -683,8 +698,9 @@ export default function UnidadesPage() {
                   <DollarSign className="w-4 h-4 text-blue-600 shrink-0" />
                   <input 
                     type="number"
+                    placeholder="0,00"
                     value={adjustedCondo}
-                    onChange={(e) => setAdjustedCondo(Number(e.target.value))}
+                    onChange={(e) => setAdjustedCondo(e.target.value)}
                     className="w-full bg-transparent text-sm font-bold text-text-primary focus:outline-none"
                   />
                 </div>
@@ -692,14 +708,15 @@ export default function UnidadesPage() {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-text-secondary uppercase block h-4 leading-4 truncate">
-                  IPTU (R$)
+                  Taxa de Administração (R$)
                 </label>
                 <div className="flex items-center gap-2 bg-surface border border-border rounded-xl px-3 py-2.5 focus-within:border-brand-lime h-11">
                   <DollarSign className="w-4 h-4 text-amber-600 shrink-0" />
                   <input 
                     type="number"
+                    placeholder="0,00"
                     value={adjustedIptu}
-                    onChange={(e) => setAdjustedIptu(Number(e.target.value))}
+                    onChange={(e) => setAdjustedIptu(e.target.value)}
                     className="w-full bg-transparent text-sm font-bold text-text-primary focus:outline-none"
                   />
                 </div>
@@ -908,8 +925,10 @@ export default function UnidadesPage() {
                   <label className="block text-xs font-bold text-text-secondary mb-1">Área Útil (m²)</label>
                   <input
                     type="number"
+                    min="0"
+                    placeholder="Ex: 50"
                     value={newArea}
-                    onChange={(e) => setNewArea(Number(e.target.value))}
+                    onChange={(e) => setNewArea(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
                   />
                 </div>
@@ -920,8 +939,10 @@ export default function UnidadesPage() {
                   <label className="block text-xs font-bold text-text-secondary mb-1">Aluguel (R$)</label>
                   <input
                     type="number"
+                    min="0"
+                    placeholder="0,00"
                     value={newRent}
-                    onChange={(e) => setNewRent(Number(e.target.value))}
+                    onChange={(e) => setNewRent(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
                   />
                 </div>
@@ -929,17 +950,21 @@ export default function UnidadesPage() {
                   <label className="block text-xs font-bold text-text-secondary mb-1">Condomínio (R$)</label>
                   <input
                     type="number"
+                    min="0"
+                    placeholder="0,00"
                     value={newCondo}
-                    onChange={(e) => setNewCondo(Number(e.target.value))}
+                    onChange={(e) => setNewCondo(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-text-secondary mb-1">IPTU (R$)</label>
+                  <label className="block text-xs font-bold text-text-secondary mb-1">Taxa de Administração (R$)</label>
                   <input
                     type="number"
+                    min="0"
+                    placeholder="0,00"
                     value={newIptu}
-                    onChange={(e) => setNewIptu(Number(e.target.value))}
+                    onChange={(e) => setNewIptu(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
                   />
                 </div>

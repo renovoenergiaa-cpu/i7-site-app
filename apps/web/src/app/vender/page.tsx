@@ -15,8 +15,8 @@ export default function SellPropertyPage() {
   const [bedrooms, setBedrooms] = useState('2');
   const [area, setArea] = useState('');
   const [desiredPrice, setDesiredPrice] = useState('');
-  const [condoValue, setCondoValue] = useState('500');
-  const [iptuValue, setIptuValue] = useState('160');
+  const [condoValue, setCondoValue] = useState('');
+  const [iptuValue, setIptuValue] = useState('');
 
   // Owner details
   const [ownerName, setOwnerName] = useState('');
@@ -34,15 +34,16 @@ export default function SellPropertyPage() {
       unitNumber: `Venda: ${propertyType === 'APARTMENT' ? 'Apartamento' : propertyType === 'HOUSE' ? 'Casa' : 'Imóvel'} em ${address.split(',')[0]}`,
       type: (propertyType === 'APARTMENT' ? 'APARTAMENTO' : propertyType === 'HOUSE' ? 'CASA' : 'COMERCIAL') as any,
       floor: 'Padrão',
-      areaSqm: Number(area) || 80,
-      rentValue: Number(desiredPrice) ? Math.round(Number(desiredPrice) * 0.005) : 3500, // Estimativa de locação ou venda
-      condoValue: Number(condoValue) || 500,
-      iptuValue: Number(iptuValue) || 160,
+      areaSqm: Number(area) || 0,
+      rentValue: Number(desiredPrice) ? Math.round(Number(desiredPrice) * 0.005) : 0,
+      condoValue: Number(condoValue) || 0,
+      iptuValue: Number(iptuValue) || 0,
+      adminFeeValue: Number(iptuValue) || 0,
       status: 'PENDENTE_AVALIACAO',
       ownerName: ownerName || 'Proprietário Interessado',
       ownerEmail: ownerEmail || 'contato@anunciante.com.br',
       ownerPhone: ownerPhone || '(15) 99999-9999',
-      bedrooms: Number(bedrooms) || 2,
+      bedrooms: Number(bedrooms) || 1,
       bathrooms: 2,
       parkingSpaces: 1,
       photosCount: 3,
@@ -79,7 +80,7 @@ export default function SellPropertyPage() {
     logAuditEvent(
       'NOVA_AVALIACAO_IMOVEL',
       'Avaliações Pendentes',
-      `Solicitação de avaliação de venda em ${address} por ${ownerName} (${ownerPhone}) com Condomínio: R$ ${condoValue} e IPTU: R$ ${iptuValue}`,
+      `Solicitação de avaliação de venda em ${address} por ${ownerName} (${ownerPhone}) com Condomínio: R$ ${condoValue || '0'} e Taxa de Administração: R$ ${iptuValue || '0'}`,
       ownerEmail || 'contato@anunciante.com.br'
     );
 
@@ -237,19 +238,21 @@ export default function SellPropertyPage() {
                 <label className="text-xs font-bold text-text-secondary uppercase">Condomínio Estimado (R$/mês)</label>
                 <input 
                   type="number" 
+                  min="0"
                   value={condoValue}
                   onChange={(e) => setCondoValue(e.target.value)}
-                  placeholder="Ex: 500"
+                  placeholder="0,00"
                   className="w-full bg-surface-hover border border-border rounded-xl p-3.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-lime/20"
                 />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
-                <label className="text-xs font-bold text-text-secondary uppercase">IPTU Estimado (R$/mês)</label>
+                <label className="text-xs font-bold text-text-secondary uppercase">Taxa de Administração (R$/mês)</label>
                 <input 
                   type="number" 
+                  min="0"
                   value={iptuValue}
                   onChange={(e) => setIptuValue(e.target.value)}
-                  placeholder="Ex: 160"
+                  placeholder="0,00"
                   className="w-full bg-surface-hover border border-border rounded-xl p-3.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-lime/20"
                 />
               </div>

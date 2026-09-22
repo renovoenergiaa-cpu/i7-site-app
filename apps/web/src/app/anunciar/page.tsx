@@ -13,8 +13,8 @@ export default function AnnouncePropertyPage() {
   const [submitted, setSubmitted] = useState(false);
   const [title, setTitle] = useState('');
   const [rentPrice, setRentPrice] = useState('');
-  const [condoPrice, setCondoPrice] = useState('450');
-  const [iptuPrice, setIptuPrice] = useState('150');
+  const [condoPrice, setCondoPrice] = useState('');
+  const [iptuPrice, setIptuPrice] = useState('');
   
   // Localização & Auto-preenchimento
   const [addressSearch, setAddressSearch] = useState('');
@@ -136,9 +136,10 @@ export default function AnnouncePropertyPage() {
       type: (propertyType === 'APARTMENT' ? 'APARTAMENTO' : propertyType === 'STUDIO' ? 'STUDIO' : 'CASA') as any,
       floor: 'Padrão',
       areaSqm: 75,
-      rentValue: Number(rentPrice) || 3500,
-      condoValue: Number(condoPrice) || 450,
-      iptuValue: Number(iptuPrice) || 150,
+      rentValue: Number(rentPrice) || 0,
+      condoValue: Number(condoPrice) || 0,
+      iptuValue: Number(iptuPrice) || 0,
+      adminFeeValue: Number(iptuPrice) || 0,
       status: 'PENDENTE_AVALIACAO', // Fica pendente até o administrador aprovar no painel!
       ownerName,
       ownerEmail,
@@ -183,7 +184,7 @@ export default function AnnouncePropertyPage() {
     logAuditEvent(
       'NOVA_AVALIACAO_IMOVEL',
       'Avaliações Pendentes',
-      `Novo imóvel enviado para avaliação gratuita: "${title}" em ${city} (${neighborhood}) com Condomínio: R$ ${condoPrice} e IPTU: R$ ${iptuPrice}. Notificação de e-mail enviada para o Administrador.`,
+      `Novo imóvel enviado para avaliação gratuita: "${title}" em ${city} (${neighborhood}) com Condomínio: R$ ${condoPrice || '0'} e Taxa de Administração: R$ ${iptuPrice || '0'}. Notificação de e-mail enviada para o Administrador.`,
       ownerEmail
     );
     
@@ -395,7 +396,8 @@ export default function AnnouncePropertyPage() {
                 <label className="text-xs font-bold text-text-secondary uppercase">Condomínio Estimado (R$)</label>
                 <input 
                   type="number" 
-                  placeholder="Ex: 450"
+                  min="0"
+                  placeholder="0,00"
                   value={condoPrice}
                   onChange={(e) => setCondoPrice(e.target.value)}
                   className="w-full bg-surface-card border border-border rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-lime"
@@ -403,10 +405,11 @@ export default function AnnouncePropertyPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-text-secondary uppercase">IPTU Estimado (R$)</label>
+                <label className="text-xs font-bold text-text-secondary uppercase">Taxa de Administração (R$)</label>
                 <input 
                   type="number" 
-                  placeholder="Ex: 150"
+                  min="0"
+                  placeholder="0,00"
                   value={iptuPrice}
                   onChange={(e) => setIptuPrice(e.target.value)}
                   className="w-full bg-surface-card border border-border rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-lime"

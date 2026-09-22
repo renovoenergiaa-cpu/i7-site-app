@@ -303,18 +303,24 @@ export default function PropertyDetailPage() {
                 <span>Aluguel</span>
                 <span className="text-text-primary font-semibold">R$ {property.rentPrice.toLocaleString('pt-BR')}</span>
               </div>
-              <div className="flex justify-between text-text-secondary">
-                <span>Condomínio</span>
-                <span className="text-text-primary font-semibold">R$ {property.condoFee.toLocaleString('pt-BR')}</span>
-              </div>
-              <div className="flex justify-between text-text-secondary">
-                <span>IPTU mensal</span>
-                <span className="text-text-primary font-semibold">R$ {property.iptuFee.toLocaleString('pt-BR')}</span>
-              </div>
-              <div className="flex justify-between text-text-secondary">
-                <span>Taxa de Serviço i7</span>
-                <span className="text-brand-lime font-semibold">R$ {property.serviceFee.toLocaleString('pt-BR')}</span>
-              </div>
+              {property.condoFee > 0 && (
+                <div className="flex justify-between text-text-secondary">
+                  <span>Condomínio</span>
+                  <span className="text-text-primary font-semibold">R$ {property.condoFee.toLocaleString('pt-BR')}</span>
+                </div>
+              )}
+              {property.iptuFee > 0 && (
+                <div className="flex justify-between text-text-secondary">
+                  <span>Taxa de Administração</span>
+                  <span className="text-text-primary font-semibold">R$ {property.iptuFee.toLocaleString('pt-BR')}</span>
+                </div>
+              )}
+              {property.serviceFee > 0 && (
+                <div className="flex justify-between text-text-secondary">
+                  <span>Taxa de Serviço</span>
+                  <span className="text-brand-lime font-semibold">R$ {property.serviceFee.toLocaleString('pt-BR')}</span>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}
