@@ -40,8 +40,7 @@ function SearchPropertiesContent() {
   }, []);
 
   const filteredProperties = properties.filter(p => {
-    // Mock prices based on searchMode
-    const priceToCompare = searchMode === 'buy' ? p.rentPrice * 180 : p.rentPrice; // Mocking sale price
+    const priceToCompare = searchMode === 'buy' ? (p.salePrice || p.rentPrice * 180) : (p.totalMonthly || p.rentPrice);
     
     // Check location (matching street, neighborhood, city and title)
     if (searchNeighborhood) {
@@ -60,8 +59,7 @@ function SearchPropertiesContent() {
     if (bedrooms && p.bedrooms < bedrooms) return false;
     if (bathrooms && p.bathrooms < bathrooms) return false;
     
-    // Mock parking spots: 2 for houses, 1 for others
-    const propParking = p.type === 'HOUSE' ? 2 : 1;
+    const propParking = p.parkingSpots ?? 0;
     if (parking && propParking < parking) return false;
     
     if (petFriendly && !p.petFriendly) return false;
@@ -282,8 +280,43 @@ function SearchPropertiesContent() {
           ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredProperties.length === 0 ? (
-                <div className="col-span-full py-20 text-center text-text-muted">
-                  Nenhum imóvel encontrado com estes filtros.
+                <div className="col-span-full py-16 px-4 text-center rounded-2xl bg-white border border-border shadow-sm space-y-4">
+                  <div className="w-14 h-14 rounded-full bg-surface-hover flex items-center justify-center text-text-muted mx-auto">
+                    <Building2 className="w-7 h-7 text-brand-lime" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-extrabold text-text-primary">
+                      {properties.length === 0 ? 'Nenhum imóvel disponível no momento' : 'Nenhum imóvel encontrado para os filtros aplicados'}
+                    </h3>
+                    <p className="text-xs text-text-secondary max-w-md mx-auto">
+                      {properties.length === 0 
+                        ? 'Seja o primeiro a anunciar na i7! Publique seu imóvel e aproveite nossa gestão 100% digital.'
+                        : 'Tente ajustar sua busca ou remover alguns filtros para encontrar mais opções.'}
+                    </p>
+                  </div>
+                  {properties.length === 0 ? (
+                    <Link
+                      href="/anunciar"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-lime text-white font-bold text-xs shadow hover:bg-brand-lime-hover transition-all"
+                    >
+                      Anuncie seu Imóvel <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setSearchNeighborhood('');
+                        setSelectedType('');
+                        setBedrooms(null);
+                        setBathrooms(null);
+                        setParking(null);
+                        setPetFriendly(false);
+                        setFurnished(false);
+                      }}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface border border-border text-text-primary font-bold text-xs hover:border-brand-lime transition-all"
+                    >
+                      Limpar todos os filtros
+                    </button>
+                  )}
                 </div>
               ) : (
                 filteredProperties.map(prop => (

@@ -33,12 +33,12 @@ export default function MaintenanceAdminPage() {
 
   // New ticket state
   const [newTitle, setNewTitle] = useState('');
-  const [newUnit, setNewUnit] = useState('Sala 101 - Paulista Corporate');
-  const [newRequestedBy, setNewRequestedBy] = useState('TechSolutions Brasil Ltda');
+  const [newUnit, setNewUnit] = useState('');
+  const [newRequestedBy, setNewRequestedBy] = useState('');
   const [newCategory, setNewCategory] = useState<'ELETRICA' | 'HIDRAULICA' | 'ESTRUTURAL' | 'PINTURA' | 'OUTROS'>('HIDRAULICA');
-  const [newUrgency, setNewUrgency] = useState<'BAIXA' | 'MEDIA' | 'ALTA' | 'EMERGENCIA'>('ALTA');
+  const [newUrgency, setNewUrgency] = useState<'BAIXA' | 'MEDIA' | 'ALTA' | 'EMERGENCIA'>('MEDIA');
   const [newDescription, setNewDescription] = useState('');
-  const [newCost, setNewCost] = useState(300);
+  const [newCost, setNewCost] = useState<number | ''>('');
 
   useEffect(() => {
     setMaintenances(getStoredData('maintenances', INITIAL_MAINTENANCES));
@@ -403,6 +403,7 @@ export default function MaintenanceAdminPage() {
                   <label className="block text-xs font-bold text-text-secondary mb-1">Unidade / Imóvel</label>
                   <input
                     type="text"
+                    placeholder="Ex: Apto 204"
                     value={newUnit}
                     onChange={(e) => setNewUnit(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
@@ -412,6 +413,7 @@ export default function MaintenanceAdminPage() {
                   <label className="block text-xs font-bold text-text-secondary mb-1">Solicitante</label>
                   <input
                     type="text"
+                    placeholder="Nome do solicitante"
                     value={newRequestedBy}
                     onChange={(e) => setNewRequestedBy(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
@@ -451,8 +453,9 @@ export default function MaintenanceAdminPage() {
                   <label className="block text-xs font-bold text-text-secondary mb-1">Orçamento (R$)</label>
                   <input
                     type="number"
+                    placeholder="0,00"
                     value={newCost}
-                    onChange={(e) => setNewCost(Number(e.target.value))}
+                    onChange={(e) => setNewCost(e.target.value === '' ? '' : Number(e.target.value))}
                     className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
                   />
                 </div>

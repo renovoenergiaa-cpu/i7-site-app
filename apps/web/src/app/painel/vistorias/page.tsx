@@ -79,7 +79,7 @@ export default function VistoriasPage() {
       setSelectedUnitId(loadedUnits[0].id);
       setNewOwnerName(loadedUnits[0].ownerName || '');
       setNewOwnerEmail(loadedUnits[0].ownerEmail || '');
-      setNewTenantName(loadedUnits[0].tenantName || 'Inquilino a designar');
+      setNewTenantName(loadedUnits[0].tenantName || '');
     }
   }, []);
 
@@ -90,9 +90,9 @@ export default function VistoriasPage() {
     if (unit) {
       setNewOwnerName(unit.ownerName || '');
       setNewOwnerEmail(unit.ownerEmail || '');
-      setNewTenantName(unit.tenantName || 'Lucas Mendes');
-      setNewTenantEmail('lucas.mendes@gmail.com');
-      setNewTenantPhone(unit.ownerPhone || '(15) 99712-3344');
+      setNewTenantName(unit.tenantName || '');
+      setNewTenantEmail(unit.tenantEmail || '');
+      setNewTenantPhone(unit.tenantPhone || unit.ownerPhone || '');
     }
   };
 
@@ -146,11 +146,11 @@ export default function VistoriasPage() {
       status: 'AGUARDANDO_ASSINATURAS',
       inspectorName: newInspectorName,
       inspectorCreci: newInspectorCreci,
-      tenantName: newTenantName || 'Inquilino Contratante',
-      tenantEmail: newTenantEmail || 'inquilino@email.com',
-      tenantPhone: newTenantPhone || '(15) 99999-0000',
+      tenantName: newTenantName || unit?.tenantName || 'Inquilino',
+      tenantEmail: newTenantEmail || unit?.tenantEmail || '',
+      tenantPhone: newTenantPhone || unit?.tenantPhone || '',
       ownerName: newOwnerName || unit?.ownerName || 'Proprietário',
-      ownerEmail: newOwnerEmail || unit?.ownerEmail || 'proprietario@i7.com.br',
+      ownerEmail: newOwnerEmail || unit?.ownerEmail || 'contato@i7imobiliaria.com.br',
       inspectionDate: new Date().toLocaleString('pt-BR'),
       meters: {
         waterReading: newWater,

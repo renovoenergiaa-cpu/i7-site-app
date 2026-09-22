@@ -41,11 +41,11 @@ export default function BoletosAdminPage() {
 
   // Form for new boleto
   const [selectedContractId, setSelectedContractId] = useState('');
-  const [newUnit, setNewUnit] = useState('Sala 101 - Edifício Paulista Corporate');
-  const [newTenant, setNewTenant] = useState('Lucas Mendes Ferreira');
-  const [newOwner, setNewOwner] = useState('Eduardo Silveira Ramos');
-  const [newAmount, setNewAmount] = useState(5630);
-  const [newDueDate, setNewDueDate] = useState('10/10/2026');
+  const [newUnit, setNewUnit] = useState('');
+  const [newTenant, setNewTenant] = useState('');
+  const [newOwner, setNewOwner] = useState('');
+  const [newAmount, setNewAmount] = useState<number | ''>('');
+  const [newDueDate, setNewDueDate] = useState('');
 
   useEffect(() => {
     setBoletos(getStoredData('boletos', INITIAL_BOLETOS));
@@ -377,6 +377,7 @@ export default function BoletosAdminPage() {
                 <input
                   type="text"
                   required
+                  placeholder="Ex: Apartamento 101 - Edifício..."
                   value={newUnit}
                   onChange={(e) => setNewUnit(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
@@ -388,6 +389,7 @@ export default function BoletosAdminPage() {
                 <input
                   type="text"
                   required
+                  placeholder="Nome do inquilino"
                   value={newTenant}
                   onChange={(e) => setNewTenant(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
@@ -399,6 +401,7 @@ export default function BoletosAdminPage() {
                 <input
                   type="text"
                   required
+                  placeholder="Nome do proprietário"
                   value={newOwner}
                   onChange={(e) => setNewOwner(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
@@ -410,8 +413,9 @@ export default function BoletosAdminPage() {
                   <label className="block text-xs font-bold text-text-secondary mb-1">Valor Total (R$)</label>
                   <input
                     type="number"
+                    placeholder="0,00"
                     value={newAmount}
-                    onChange={(e) => setNewAmount(Number(e.target.value))}
+                    onChange={(e) => setNewAmount(e.target.value === '' ? '' : Number(e.target.value))}
                     className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
                   />
                 </div>
@@ -419,6 +423,7 @@ export default function BoletosAdminPage() {
                   <label className="block text-xs font-bold text-text-secondary mb-1">Vencimento</label>
                   <input
                     type="text"
+                    placeholder="DD/MM/AAAA"
                     value={newDueDate}
                     onChange={(e) => setNewDueDate(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"

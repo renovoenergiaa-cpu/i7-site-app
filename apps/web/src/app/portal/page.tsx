@@ -138,7 +138,7 @@ export default function PortalUnificadoPage() {
               ...a.readBy,
               {
                 userId: session?.user?.id || 'curr-user',
-                userName: session?.user?.name || (portalMode === 'OWNER' ? 'Eduardo Silveira Ramos' : 'Lucas Ferreira'),
+                userName: session?.user?.name || (portalMode === 'OWNER' ? 'Proprietário' : 'Inquilino'),
                 readAt: new Date().toLocaleString('pt-BR')
               }
             ]
@@ -197,8 +197,8 @@ export default function PortalUnificadoPage() {
     const newTicket: GestaoMaintenance = {
       id: `mnt-${Date.now()}`,
       title: ticketTitle,
-      unitName: 'Apto 204 - Residencial Faria Lima Prime',
-      requestedBy: session?.user?.name || 'Lucas Ferreira',
+      unitName: tenantContract?.unitName || (userOwnedUnits[0]?.buildingName ? `${userOwnedUnits[0].buildingName} - ${userOwnedUnits[0].unitNumber}` : 'Minha Unidade'),
+      requestedBy: session?.user?.name || (portalMode === 'OWNER' ? 'Proprietário' : 'Inquilino'),
       requestedByRole: 'TENANT',
       category: ticketCategory,
       urgency: ticketUrgency,
@@ -253,73 +253,55 @@ export default function PortalUnificadoPage() {
   const currentUserName = session?.user?.name || '';
   const currentUserEmail = session?.user?.email || '';
 
-  // Verifica se é a conta fixa de demonstração ou uma conta real cadastrada
-  const isDemoOwner = currentUserEmail.toLowerCase() === 'proprietario@i7.com.br';
-  const isDemoTenant = currentUserEmail.toLowerCase() === 'inquilino@i7.com.br';
-
-  // Owner view: Contas novas trazem EXCLUSIVAMENTE os dados reais delas (sem dados fictícios de terceiros)
+  // Owner view: Contas trazem EXCLUSIVAMENTE os dados reais delas
   const userOwnedUnits = units.filter(u => 
     (currentUserEmail && u.ownerEmail.toLowerCase() === currentUserEmail.toLowerCase()) ||
     (currentUserName && u.ownerName.toLowerCase().includes(currentUserName.toLowerCase()))
   );
-  const ownerUnits = isDemoOwner 
-    ? units.filter(u => u.ownerName.includes('Eduardo') || u.ownerName.includes('Mariana') || u.ownerName.includes('Carlos'))
-    : userOwnedUnits;
+  const ownerUnits = userOwnedUnits;
 
   const ownerContracts = contracts.filter(c => 
-    isDemoOwner ? true : (currentUserEmail && c.ownerEmail.toLowerCase() === currentUserEmail.toLowerCase()) ||
+    (currentUserEmail && c.ownerEmail.toLowerCase() === currentUserEmail.toLowerCase()) ||
     (currentUserName && c.ownerName.toLowerCase().includes(currentUserName.toLowerCase()))
   );
 
   const ownerBoletos = boletos.filter(b => 
-    isDemoOwner ? true : (currentUserName && b.ownerName.toLowerCase().includes(currentUserName.toLowerCase())) ||
+    (currentUserName && b.ownerName.toLowerCase().includes(currentUserName.toLowerCase())) ||
     ownerUnits.some(u => b.unitName.includes(u.unitNumber) || b.unitName.includes(u.buildingName))
   );
 
   const ownerPayments = payments.filter(p => 
-    isDemoOwner ? true : (currentUserName && p.ownerName.toLowerCase().includes(currentUserName.toLowerCase())) ||
+    (currentUserName && p.ownerName.toLowerCase().includes(currentUserName.toLowerCase())) ||
     ownerUnits.some(u => p.unitName.includes(u.unitNumber) || p.unitName.includes(u.buildingName))
   );
 
   const ownerMaintenances = maintenances.filter(m => 
-    isDemoOwner ? true : ownerUnits.some(u => m.unitName.includes(u.unitNumber) || m.unitName.includes(u.buildingName))
+    ownerUnits.some(u => m.unitName.includes(u.unitNumber) || m.unitName.includes(u.buildingName))
   );
 
   const ownerDocuments = documents.filter(d => d.targetRole === 'TODOS' || d.targetRole === 'PROPRIETARIO');
 
-  // Tenant view: Contas novas trazem EXCLUSIVAMENTE o contrato e boletos do inquilino cadastrado
+  // Tenant view: Contas trazem EXCLUSIVAMENTE o contrato e boletos do inquilino cadastrado
   const realTenantContract = contracts.find(c => 
     (currentUserEmail && c.tenantEmail.toLowerCase() === currentUserEmail.toLowerCase()) ||
     (currentUserName && c.tenantName.toLowerCase().includes(currentUserName.toLowerCase()))
   );
 
-  const tenantContract = isDemoTenant 
-    ? (contracts.find(c => c.tenantName.includes('Lucas')) || contracts[0])
-    : (realTenantContract || null);
+  const tenantContract = realTenantContract || null;
 
   const tenantOpenBoletos = boletos.filter(b => {
-    if (isDemoTenant) {
-      return (b.tenantName.includes('Lucas') || b.tenantName.includes('TechSolutions')) &&
-             (b.status === 'EM_ABERTO' || b.status === 'VENCIDO');
-    }
     const matchesUser = (currentUserName && b.tenantName.toLowerCase().includes(currentUserName.toLowerCase())) ||
                         (tenantContract && b.unitName === tenantContract.unitName);
     return matchesUser && (b.status === 'EM_ABERTO' || b.status === 'VENCIDO');
   });
 
   const tenantPaidBoletos = boletos.filter(b => {
-    if (isDemoTenant) {
-      return (b.tenantName.includes('Lucas') || b.tenantName.includes('TechSolutions')) && b.status === 'PAGO';
-    }
     const matchesUser = (currentUserName && b.tenantName.toLowerCase().includes(currentUserName.toLowerCase())) ||
                         (tenantContract && b.unitName === tenantContract.unitName);
     return matchesUser && b.status === 'PAGO';
   });
 
   const tenantMaintenances = maintenances.filter(m => {
-    if (isDemoTenant) {
-      return m.requestedBy.includes('Lucas') || m.requestedBy.includes('TechSolutions');
-    }
     return currentUserName && m.requestedBy.toLowerCase().includes(currentUserName.toLowerCase());
   });
 
@@ -394,10 +376,10 @@ export default function PortalUnificadoPage() {
 
             <div className="text-right text-xs">
               <div className="font-bold text-text-primary">
-                {session?.user?.name || (portalMode === 'OWNER' ? 'Carlos Alberto Silva' : 'Mariana Costa Tech')}
+                {session?.user?.name || (portalMode === 'OWNER' ? 'Proprietário' : 'Locatário')}
               </div>
               <div className="text-text-secondary text-[11px]">
-                {session?.user?.email || (portalMode === 'OWNER' ? 'proprietario@i7.com.br' : 'locatario@i7.com.br')}
+                {session?.user?.email || ''}
               </div>
               <div className="text-[10px] text-emerald-600 font-bold mt-0.5">
                 ● Conta Ativa

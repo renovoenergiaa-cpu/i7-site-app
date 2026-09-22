@@ -357,7 +357,7 @@ function LoginFormContent() {
                   <User className="w-4 h-4 text-text-secondary" />
                   <input 
                     type="text" 
-                    placeholder="Ex: Carlos Alberto Silva"
+                    placeholder="Digite seu nome completo"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full bg-transparent text-xs text-text-primary focus:outline-none font-medium"

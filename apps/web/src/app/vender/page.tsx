@@ -20,6 +20,7 @@ export default function SellPropertyPage() {
 
   // Owner details
   const [ownerName, setOwnerName] = useState('');
+  const [ownerEmail, setOwnerEmail] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -39,7 +40,7 @@ export default function SellPropertyPage() {
       iptuValue: Number(iptuValue) || 160,
       status: 'PENDENTE_AVALIACAO',
       ownerName: ownerName || 'Proprietário Interessado',
-      ownerEmail: 'proprietario@i7.com.br',
+      ownerEmail: ownerEmail || 'contato@anunciante.com.br',
       ownerPhone: ownerPhone || '(15) 99999-9999',
       bedrooms: Number(bedrooms) || 2,
       bathrooms: 2,
@@ -66,7 +67,7 @@ export default function SellPropertyPage() {
         propertyTitle: newUnit.unitNumber,
         neighborhood: address,
         ownerName,
-        ownerEmail: 'proprietario@i7.com.br',
+        ownerEmail: ownerEmail || 'contato@anunciante.com.br',
         ownerPhone,
         rentPrice: desiredPrice,
         condoValue,
@@ -79,7 +80,7 @@ export default function SellPropertyPage() {
       'NOVA_AVALIACAO_IMOVEL',
       'Avaliações Pendentes',
       `Solicitação de avaliação de venda em ${address} por ${ownerName} (${ownerPhone}) com Condomínio: R$ ${condoValue} e IPTU: R$ ${iptuValue}`,
-      'proprietario@i7.com.br'
+      ownerEmail || 'contato@anunciante.com.br'
     );
 
     setSubmitted(true);
@@ -142,12 +143,23 @@ export default function SellPropertyPage() {
                 />
               </div>
               <div className="space-y-1.5">
+                <label className="text-xs font-bold text-text-secondary uppercase">E-mail</label>
+                <input 
+                  type="email" 
+                  value={ownerEmail}
+                  onChange={(e) => setOwnerEmail(e.target.value)}
+                  placeholder="seuemail@exemplo.com"
+                  className="w-full bg-surface-hover border border-border rounded-xl p-3.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-lime/20"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
                 <label className="text-xs font-bold text-text-secondary uppercase">WhatsApp</label>
                 <input 
                   type="tel" 
                   value={ownerPhone}
                   onChange={(e) => setOwnerPhone(e.target.value)}
-                  placeholder="(11) 99999-9999"
+                  placeholder="(15) 99999-9999"
                   className="w-full bg-surface-hover border border-border rounded-xl p-3.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-lime/20"
                   required
                 />

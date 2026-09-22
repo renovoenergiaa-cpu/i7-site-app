@@ -37,7 +37,7 @@ export default function ConfiguracoesAdminPage() {
   };
 
   const handleResetBaseline = () => {
-    if (confirm('Deseja limpar todos os dados de teste e restaurar a base com apenas 1 exemplo de referência oficial?')) {
+    if (confirm('Deseja limpar todos os dados de simulação e restaurar a base zerada de produção para uso imediato?')) {
       resetToCleanBaseline();
       setResetSuccess(true);
       setTimeout(() => {
@@ -250,7 +250,7 @@ export default function ConfiguracoesAdminPage() {
               <RotateCcw className="w-4 h-4 text-brand-lime" /> Manutenção da Base de Dados
             </h3>
             <p className="text-xs text-text-secondary">
-              Restaura a plataforma para a base limpa de produção com exatamente <strong>1 exemplo de referência oficial</strong> (Sala 101, Eduardo Silveira e Lucas Mendes), removendo testes e simulações antigas.
+              Restaura a plataforma para a <strong>base oficial limpa de produção</strong>, removendo quaisquer testes ou simulações anteriores e deixando o sistema pronto para operação real.
             </p>
           </div>
 
@@ -259,13 +259,13 @@ export default function ConfiguracoesAdminPage() {
             onClick={handleResetBaseline}
             className="px-4 py-2.5 rounded-xl bg-surface border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold flex items-center gap-1.5 transition-colors whitespace-nowrap"
           >
-            <RotateCcw className="w-3.5 h-3.5" /> Resetar para 1 Exemplo Limpo
+            <RotateCcw className="w-3.5 h-3.5" /> Zerar Base de Dados (Produção)
           </button>
         </div>
 
         {resetSuccess && (
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4" /> Base restaurada com sucesso com 1 exemplo oficial! Atualizando tela...
+            <CheckCircle2 className="w-4 h-4" /> Base zerada e configurada para produção com sucesso! Atualizando tela...
           </div>
         )}
       </div>

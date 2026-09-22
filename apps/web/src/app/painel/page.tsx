@@ -21,7 +21,8 @@ import {
   TrendingUp,
   Plus,
   Calendar,
-  ClipboardCheck
+  ClipboardCheck,
+  Home
 } from 'lucide-react';
 import { 
   INITIAL_UNITS, 
@@ -80,16 +81,16 @@ export default function AdminDashboardPage() {
 
         <div className="flex items-center gap-3">
           <Link
-            href="/painel/boletos"
-            className="px-4 py-2.5 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow-md flex items-center gap-2 transition-all"
+            href="/painel/imoveis"
+            className="px-4 py-2.5 rounded-xl bg-brand-lime text-surface-dark text-xs font-black shadow-glow-lime hover:scale-105 flex items-center gap-2 transition-all"
           >
-            <Plus className="w-4 h-4" /> Emitir Cobrança
+            <Home className="w-4 h-4" /> Imóveis para Aluguel
           </Link>
           <Link
-            href="/painel/unidades"
-            className="px-4 py-2.5 rounded-xl bg-surface border border-border text-text-primary text-xs font-bold hover:border-brand-lime transition-all"
+            href="/painel/boletos"
+            className="px-4 py-2.5 rounded-xl bg-surface border border-border text-text-primary text-xs font-bold hover:border-brand-lime flex items-center gap-2 transition-all"
           >
-            Nova Unidade
+            <Plus className="w-4 h-4" /> Emitir Cobrança
           </Link>
         </div>
       </div>

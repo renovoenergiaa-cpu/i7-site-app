@@ -51,14 +51,14 @@ export default function PropostaDigitalPage() {
 
   useEffect(() => {
     const proposals = getStoredData<RentalProposal[]>('proposals', INITIAL_PROPOSALS);
-    const found = proposals.find(p => p.id === id || p.code === id) || proposals[0];
+    const found = proposals.find(p => p.id === id || p.code === id);
     
     if (found) {
       setProposal(found);
       setCpf(found.clientCpf || '');
       setBirthDate(found.clientBirthDate || '');
       setProfession(found.clientProfession || '');
-      setIncome(found.clientIncome || found.rentValue * 3);
+      setIncome(found.clientIncome || 0);
       setGuarantee(found.guaranteeType || 'FIANCA_DIGITAL');
       if (found.documents && found.documents.length > 0) {
         setUploadedDocs(found.documents);
@@ -86,12 +86,12 @@ export default function PropostaDigitalPage() {
     const proposals = getStoredData<RentalProposal[]>('proposals', INITIAL_PROPOSALS);
     const updatedProposal: RentalProposal = {
       ...proposal,
-      clientCpf: cpf || '341.892.418-09',
-      clientBirthDate: birthDate || '14/07/1992',
-      clientProfession: profession || 'Profissional Autônomo / CLT',
-      clientIncome: Number(income) || proposal.rentValue * 3,
+      clientCpf: cpf,
+      clientBirthDate: birthDate,
+      clientProfession: profession,
+      clientIncome: Number(income) || 0,
       guaranteeType: guarantee,
-      creditScore: 840,
+      creditScore: 800,
       documents: uploadedDocs.map(d => ({ ...d, uploadedAt: new Date().toLocaleString('pt-BR') })),
       status: 'EM_ANALISE_CREDITO',
       updatedAt: new Date().toLocaleDateString('pt-BR')

@@ -39,11 +39,11 @@ export default function FinanceAdminPage() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   // Form para nova cobrança Asaas
-  const [customerName, setCustomerName] = useState('Lucas Mendes Ferreira');
-  const [customerEmail, setCustomerEmail] = useState('lucas.mendes@email.com');
-  const [customerCpfCnpj, setCustomerCpfCnpj] = useState('123.456.789-00');
-  const [amount, setAmount] = useState(5630);
-  const [description, setDescription] = useState('Aluguel Sala 101 - Edifício Paulista Corporate');
+  const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerCpfCnpj, setCustomerCpfCnpj] = useState('');
+  const [amount, setAmount] = useState<number | ''>('');
+  const [description, setDescription] = useState('');
   const [createdPix, setCreatedPix] = useState<any>(null);
 
   const fetchAsaasData = async () => {
@@ -81,7 +81,7 @@ export default function FinanceAdminPage() {
           customerName,
           customerEmail,
           customerCpfCnpj,
-          value: amount,
+          value: Number(amount),
           description,
           dueDate: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0]
         })
@@ -93,14 +93,14 @@ export default function FinanceAdminPage() {
         const newBoleto: GestaoBoleto = {
           id: `bol-asaas-${data.payment.id}`,
           code: data.payment.id || `BOL-${Date.now()}`,
-          unitName: 'Sala 101 - Edifício Paulista Corporate',
+          unitName: description || 'Cobrança Direta',
           tenantName: customerName,
-          ownerName: 'Eduardo Silveira Ramos',
+          ownerName: 'Administração i7',
           amount: Number(amount),
-          dueDate: data.payment.dueDate || '10/10/2026',
+          dueDate: data.payment.dueDate || new Date(Date.now() + 5 * 86400000).toLocaleDateString('pt-BR'),
           status: 'EM_ABERTO',
           dunningStep: 'LEMBRETE_PREVIO',
-          barCode: data.payment.identificationField || data.payment.bankSlipUrl || '34191.79001 01043.510047 91020.150008 5 99410000563000',
+          barCode: data.payment.identificationField || data.payment.bankSlipUrl || `34191.79001 01043.510047 91020.150008 5 ${Math.floor(10000000000000 + Math.random() * 90000000000000)}`,
           pixCode: data.pix?.payload || `00020126580014br.gov.bcb.pix0136${data.payment.id}`
         };
 
@@ -295,6 +295,7 @@ export default function FinanceAdminPage() {
                   <input
                     type="text"
                     required
+                    placeholder="Nome completo do sacado"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
@@ -307,6 +308,7 @@ export default function FinanceAdminPage() {
                     <input
                       type="email"
                       required
+                      placeholder="sacado@email.com"
                       value={customerEmail}
                       onChange={(e) => setCustomerEmail(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
@@ -317,6 +319,7 @@ export default function FinanceAdminPage() {
                     <input
                       type="text"
                       required
+                      placeholder="000.000.000-00"
                       value={customerCpfCnpj}
                       onChange={(e) => setCustomerCpfCnpj(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
@@ -329,8 +332,9 @@ export default function FinanceAdminPage() {
                   <input
                     type="number"
                     required
+                    placeholder="0,00"
                     value={amount}
-                    onChange={(e) => setAmount(Number(e.target.value))}
+                    onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
                     className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime font-bold"
                   />
                 </div>
@@ -339,6 +343,7 @@ export default function FinanceAdminPage() {
                   <label className="block text-xs font-bold text-text-secondary mb-1">Descrição</label>
                   <input
                     type="text"
+                    placeholder="Ex: Aluguel Unidade 101 - Referência Outubro"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"

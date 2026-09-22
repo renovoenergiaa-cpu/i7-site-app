@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { fetchPropertyById } from '@/lib/api';
 import { PropertyDTO } from '@i7/types';
 import { MapPin, Calendar, Send, MessageSquare, ShieldCheck, Heart, Sparkles, Check, ChevronRight, X, User, Lock, Phone } from 'lucide-react';
@@ -12,6 +13,7 @@ export default function PropertyDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [property, setProperty] = useState<PropertyDTO | null>(null);
+  const [loading, setLoading] = useState(true);
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
   
   // Modals
@@ -23,7 +25,7 @@ export default function PropertyDetailPage() {
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [clientNotes, setClientNotes] = useState('');
-  const [visitDate, setVisitDate] = useState('2026-09-10T14:30');
+  const [visitDate, setVisitDate] = useState('');
   const [proposalAmount, setProposalAmount] = useState<number>(0);
   const [chatMessages, setChatMessages] = useState<{ sender: string; text: string }[]>([
     { sender: 'Corretor i7', text: 'Olá! Sou o corretor responsável por este imóvel. Como posso ajudar você hoje?' }
@@ -40,18 +42,41 @@ export default function PropertyDetailPage() {
     }
 
     if (params.id) {
-      fetchPropertyById(params.id as string).then(data => {
-        setProperty(data);
-        if (data) setProposalAmount(data.rentPrice);
-      });
+      fetchPropertyById(params.id as string)
+        .then(data => {
+          setProperty(data);
+          if (data) setProposalAmount(data.rentPrice);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
     }
   }, [params.id]);
 
-  if (!property) {
+  if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-24 text-center space-y-4">
         <div className="w-12 h-12 rounded-full border-2 border-brand-lime border-t-transparent animate-spin mx-auto" />
         <p className="text-text-secondary font-medium">Carregando detalhes do imóvel i7...</p>
+      </div>
+    );
+  }
+
+  if (!property) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-24 text-center space-y-4">
+        <h2 className="text-2xl font-black text-text-primary">Imóvel não encontrado</h2>
+        <p className="text-sm text-text-secondary max-w-md mx-auto">
+          Este imóvel pode já ter sido locado, vendido ou desativado da nossa plataforma.
+        </p>
+        <Link
+          href="/imoveis"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-lime text-white font-bold text-sm shadow hover:bg-brand-lime-hover transition-all"
+        >
+          Ver outros imóveis disponíveis
+        </Link>
       </div>
     );
   }
@@ -101,14 +126,21 @@ export default function PropertyDetailPage() {
     setSuccessBanner('Proposta de aluguel enviada diretamente ao proprietário! Acompanhe o status no seu painel.');
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessageText.trim()) return;
-    setChatMessages([...chatMessages, { sender: 'Você', text: newMessageText }]);
-    setNewMessageText('');
-    setTimeout(() => {
-      setChatMessages(prev => [...prev, { sender: 'Corretor i7', text: 'Recebido! Verifiquei que o imóvel aceita pets e o condomínio possui vaga demarcada.' }]);
-    }, 1000);
+  const getWhatsAppPropertyUrl = () => {
+    if (!property) return 'https://wa.me/551130904000';
+
+    const rentFormatted = property.rentPrice
+      ? `R$ ${property.rentPrice.toLocaleString('pt-BR')}/mês`
+      : 'A consultar';
+    const totalFormatted = property.totalMonthly
+      ? ` (Total estimado com taxas: R$ ${property.totalMonthly.toLocaleString('pt-BR')}/mês)`
+      : '';
+    const addressFormatted = `${property.street}, ${property.number} - ${property.neighborhood}, ${property.city}/${property.state}`;
+    const urlImovel = typeof window !== 'undefined' ? window.location.href : `https://i7imob.com.br/imoveis/${property.id}`;
+
+    const message = `Olá, equipe i7 Inteligência Imobiliária! 👋\nTenho interesse e gostaria de mais informações sobre este imóvel que vi no site:\n\n🏢 *${property.title}*\n📍 Localização: ${addressFormatted}\n💰 Valor: ${rentFormatted}${totalFormatted}\n📐 Área: ${property.areaSqm} m² | ${property.bedrooms} Quartos | ${property.bathrooms} Banheiros | ${property.parkingSpots} Vagas\n🔗 Link do Imóvel: ${urlImovel}\n\nPoderiam me passar mais informações e disponibilidade para visita? Obrigado!`;
+
+    return `https://wa.me/551130904000?text=${encodeURIComponent(message)}`;
   };
 
   return (
@@ -157,12 +189,14 @@ export default function PropertyDetailPage() {
           <button className="p-3 rounded-xl bg-surface-card border border-border hover:border-brand-lime text-text-secondary hover:text-brand-lime transition-all">
             <Heart className="w-5 h-5" />
           </button>
-          <button 
-            onClick={() => setChatModalOpen(true)}
-            className="px-4 py-3 rounded-xl bg-surface-card border border-border hover:border-brand-lime text-sm font-bold text-text-primary flex items-center gap-2 transition-all"
+          <a 
+            href={getWhatsAppPropertyUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 border border-emerald-500 text-sm font-bold text-white flex items-center gap-2 transition-all shadow-md hover:scale-[1.02]"
           >
-            <MessageSquare className="w-4 h-4 text-brand-lime" /> Conversar no Chat
-          </button>
+            <MessageSquare className="w-4 h-4 text-white" /> Conversar no WhatsApp
+          </a>
         </div>
       </div>
 
@@ -298,6 +332,15 @@ export default function PropertyDetailPage() {
               >
                 <Send className="w-4 h-4 text-brand-lime" /> Fazer Proposta Online
               </button>
+
+              <a 
+                href={getWhatsAppPropertyUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 px-4 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 transition-all shadow-md hover:scale-[1.01]"
+              >
+                <MessageSquare className="w-5 h-5" /> Conversar no WhatsApp
+              </a>
             </div>
 
             <div className="text-[11px] text-text-muted flex items-center gap-1.5 pt-2">
@@ -333,7 +376,7 @@ export default function PropertyDetailPage() {
                   type="text" 
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
-                  placeholder="Ex: Carlos Alberto Silva"
+                  placeholder="Digite seu nome completo"
                   className="w-full bg-surface-card border border-border rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-lime"
                   required
                 />
@@ -365,15 +408,15 @@ export default function PropertyDetailPage() {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-text-secondary uppercase">Observações (Opcional)</label>
                 <textarea 
-                  rows={2}
                   value={clientNotes}
                   onChange={(e) => setClientNotes(e.target.value)}
-                  placeholder="Alguma dúvida ou preferência de horário?"
-                  className="w-full bg-surface-card border border-border rounded-xl p-3 text-xs text-text-primary focus:outline-none focus:border-brand-lime resize-none"
+                  placeholder="Ex: Gostaria de visitar no período da tarde..."
+                  className="w-full bg-surface-card border border-border rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-lime"
+                  rows={2}
                 />
               </div>
 
-              <button type="submit" className="w-full py-3.5 rounded-xl font-bold bg-brand-lime text-white hover:bg-brand-lime-hover shadow-md transition-all cursor-pointer">
+              <button type="submit" className="w-full py-3 rounded-xl font-bold bg-brand-lime text-background hover:bg-brand-lime-hover shadow-glow-lime flex items-center justify-center gap-2">
                 Confirmar Solicitação de Visita
               </button>
             </form>
@@ -387,14 +430,14 @@ export default function PropertyDetailPage() {
           <div className="w-full max-w-md p-6 rounded-2xl glass-panel border border-brand-lime/40 space-y-6">
             <div className="flex items-center justify-between border-b border-border pb-4">
               <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                <Send className="w-5 h-5 text-brand-lime" /> Proposta de Aluguel
+                <Send className="w-5 h-5 text-brand-lime" /> Enviar Proposta de Aluguel
               </h3>
               <button onClick={() => setProposalModalOpen(false)} className="text-text-muted hover:text-text-primary"><X className="w-5 h-5" /></button>
             </div>
 
             <form onSubmit={handleSendProposal} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-text-secondary uppercase">Valor do Aluguel Proposto (R$)</label>
+                <label className="text-xs font-bold text-text-secondary uppercase">Valor Ofertado (R$/mês)</label>
                 <input 
                   type="number" 
                   value={proposalAmount}
@@ -415,48 +458,6 @@ export default function PropertyDetailPage() {
 
               <button type="submit" className="w-full py-3 rounded-xl font-bold bg-brand-lime text-white hover:bg-brand-lime-hover shadow-glow-blue">
                 Enviar Proposta Oficial
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* CHAT MODAL */}
-      {chatModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
-          <div className="w-full max-w-lg h-[500px] p-6 rounded-2xl glass-panel border border-border flex flex-col justify-between">
-            <div className="flex items-center justify-between border-b border-border pb-4">
-              <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-brand-lime" /> Chat i7 — {property.neighborhood}
-              </h3>
-              <button onClick={() => setChatModalOpen(false)} className="text-text-muted hover:text-text-primary"><X className="w-5 h-5" /></button>
-            </div>
-
-            {/* Message Area */}
-            <div className="flex-1 overflow-y-auto py-4 space-y-3">
-              {chatMessages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.sender === 'Você' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-xs p-3 rounded-xl text-xs ${
-                    msg.sender === 'Você' ? 'bg-brand-lime text-background font-medium' : 'bg-surface-card text-text-primary border border-border'
-                  }`}>
-                    <div className="font-bold mb-0.5">{msg.sender}</div>
-                    {msg.text}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Input Form */}
-            <form onSubmit={handleSendMessage} className="flex gap-2 pt-3 border-t border-border">
-              <input 
-                type="text" 
-                placeholder="Digite sua dúvida..."
-                value={newMessageText}
-                onChange={(e) => setNewMessageText(e.target.value)}
-                className="flex-1 bg-surface-card border border-border rounded-xl px-4 py-2 text-sm text-text-primary focus:outline-none"
-              />
-              <button type="submit" className="p-2.5 rounded-xl bg-brand-lime text-background hover:bg-brand-lime-hover">
-                <Send className="w-4 h-4" />
               </button>
             </form>
           </div>

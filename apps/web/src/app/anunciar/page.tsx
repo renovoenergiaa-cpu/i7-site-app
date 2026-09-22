@@ -112,9 +112,9 @@ export default function AnnouncePropertyPage() {
 
     // Salva o imóvel na base de gestão com status PENDENTE_AVALIACAO e as fotos reais anexadas!
     const existingUnits = getStoredData<BuildingUnit[]>('units', INITIAL_UNITS);
-    const ownerName = session?.user?.name || 'Carlos Alberto Silva';
-    const ownerEmail = session?.user?.email || 'proprietario@i7.com.br';
-    const ownerPhone = session?.user?.phone || '(15) 99123-4567';
+    const ownerName = session?.user?.name || 'Proprietário Anunciante';
+    const ownerEmail = session?.user?.email || 'anunciante@i7.com.br';
+    const ownerPhone = session?.user?.phone || '(15) 3090-4000';
 
     // Imagens padrão de alta resolução para caso o usuário anexe sem arquivos pesados
     const defaultSamplePhotos = [

@@ -66,15 +66,15 @@ export default function ContratosAdminPage() {
   // Form states para novo contrato manual
   const [newCode, setNewCode] = useState(`CTR-2026-${Math.floor(100 + Math.random() * 900)}`);
   const [selectedUnitId, setSelectedUnitId] = useState('');
-  const [newUnit, setNewUnit] = useState('Sala 101 - Edifício Paulista Corporate');
+  const [newUnit, setNewUnit] = useState('');
   const [selectedTenantId, setSelectedTenantId] = useState('');
-  const [newTenantName, setNewTenantName] = useState('Lucas Mendes Ferreira');
-  const [newTenantEmail, setNewTenantEmail] = useState('lucas.mendes@email.com');
-  const [newOwnerName, setNewOwnerName] = useState('Eduardo Silveira Ramos');
-  const [newOwnerEmail, setNewOwnerEmail] = useState('eduardo.silveira@email.com');
-  const [newStartDate, setNewStartDate] = useState('01/09/2026');
-  const [newEndDate, setNewEndDate] = useState('31/08/2028');
-  const [newAmount, setNewAmount] = useState(4500);
+  const [newTenantName, setNewTenantName] = useState('');
+  const [newTenantEmail, setNewTenantEmail] = useState('');
+  const [newOwnerName, setNewOwnerName] = useState('');
+  const [newOwnerEmail, setNewOwnerEmail] = useState('');
+  const [newStartDate, setNewStartDate] = useState('');
+  const [newEndDate, setNewEndDate] = useState('');
+  const [newAmount, setNewAmount] = useState(0);
   const [newIndex, setNewIndex] = useState<'IPCA' | 'IGP-M' | 'INPC'>('IPCA');
   const [newGuarantee, setNewGuarantee] = useState<'CAUCAO' | 'SEGURO_FIANCA' | 'FIADOR' | 'TITULO_CAP'>('SEGURO_FIANCA');
   const [newFine, setNewFine] = useState(10);
@@ -157,6 +157,10 @@ export default function ContratosAdminPage() {
   // 2. ETAPA 3: APROVAR CRÉDITO & EMITIR CONTRATO DIGITAL A PARTIR DA PROPOSTA
   const handleApproveProposalAndEmitContract = (proposal: RentalProposal) => {
     const contractCode = `CTR-2026-${String(contracts.length + 1).padStart(3, '0')}`;
+    const units = getStoredData<BuildingUnit[]>('units', INITIAL_UNITS);
+    const targetUnit = units.find(u => proposal.unitName.includes(u.unitNumber) || u.buildingName.includes(proposal.unitName) || u.id === proposal.propertyId);
+    const resolvedOwnerName = targetUnit?.ownerName || 'Proprietário';
+    const resolvedOwnerEmail = targetUnit?.ownerEmail || 'contato@i7imobiliaria.com.br';
     
     // A. Cria o Contrato Digital Oficial
     const newContract: GestaoContract = {
@@ -165,8 +169,8 @@ export default function ContratosAdminPage() {
       unitName: proposal.unitName,
       tenantName: proposal.clientName,
       tenantEmail: proposal.clientEmail,
-      ownerName: 'Carlos Alberto Silva',
-      ownerEmail: 'proprietario@i7.com.br',
+      ownerName: resolvedOwnerName,
+      ownerEmail: resolvedOwnerEmail,
       startDate: new Date().toLocaleDateString('pt-BR'),
       endDate: new Date(Date.now() + 30 * 365 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
       monthlyAmount: proposal.rentValue,
@@ -193,7 +197,6 @@ export default function ContratosAdminPage() {
     saveStoredData('proposals', updatedProposals);
 
     // C. ETAPA 4: Atualiza a Unidade para LOCADO
-    const units = getStoredData<BuildingUnit[]>('units', INITIAL_UNITS);
     const updatedUnits = units.map(u => {
       if (proposal.unitName.includes(u.unitNumber) || u.buildingName.includes(proposal.unitName)) {
         return {
@@ -224,44 +227,31 @@ export default function ContratosAdminPage() {
       tenantName: proposal.clientName,
       tenantEmail: proposal.clientEmail,
       tenantPhone: proposal.clientPhone,
-      ownerName: 'Carlos Alberto Silva',
-      ownerEmail: 'proprietario@i7.com.br',
+      ownerName: resolvedOwnerName,
+      ownerEmail: resolvedOwnerEmail,
       inspectionDate: new Date().toLocaleString('pt-BR'),
       meters: {
-        waterReading: '150,2 m³',
-        waterMeterNumber: 'HID-88491',
-        electricReading: '5.240 kWh',
-        electricMeterNumber: 'CPFL-091992',
-        gasReading: '68,4 m³',
-        keysHandedCount: 3,
-        remoteControlsCount: 2,
+        waterReading: '0,0 m³',
+        waterMeterNumber: 'HID-00000',
+        electricReading: '0 kWh',
+        electricMeterNumber: 'CPFL-000000',
+        gasReading: '0,0 m³',
+        keysHandedCount: 2,
+        remoteControlsCount: 1,
         accessTagsCount: 2,
-        keysDescription: '2 chaves da porta principal, 1 chave da caixa de correio e 2 tags de acesso.'
+        keysDescription: 'Chaves e controles entregues na assinatura.'
       },
       rooms: [
         {
           id: 'r-auto-1',
-          name: 'Sala & Living',
+          name: 'Geral',
           items: [
             {
               id: 'i-auto-1',
-              name: 'Paredes & Pintura',
+              name: 'Imóvel e Pintura',
               condition: 'NOVO',
-              notes: 'Pintura nova sem avarias.',
-              photos: ['https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800']
-            }
-          ]
-        },
-        {
-          id: 'r-auto-2',
-          name: 'Cozinha',
-          items: [
-            {
-              id: 'i-auto-2',
-              name: 'Bancada & Torneiras',
-              condition: 'BOM',
-              notes: 'Instalações hidráulicas testadas 100%.',
-              photos: ['https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=800']
+              notes: 'Imóvel entregue em perfeito estado de conservação.',
+              photos: []
             }
           ]
         }
@@ -279,9 +269,9 @@ export default function ContratosAdminPage() {
       code: `BOL-${Math.floor(1000 + Math.random() * 9000)}`,
       unitName: proposal.unitName,
       tenantName: proposal.clientName,
-      ownerName: 'Carlos Alberto Silva',
+      ownerName: resolvedOwnerName,
       amount: proposal.totalMonthly,
-      dueDate: '10/10/2026',
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
       status: 'EM_ABERTO',
       dunningStep: 'LEMBRETE_PREVIO',
       barCode: `34191.79001 01043.510047 91020.150008 5 ${Math.floor(10000000000000 + Math.random() * 90000000000000)}`,

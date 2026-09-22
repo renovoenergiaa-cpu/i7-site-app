@@ -27,38 +27,6 @@ export const FIXED_ADMIN = {
   }
 };
 
-// Contas oficiais pré-cadastradas e ativas (Proprietário e Inquilino de Referência)
-export const FIXED_USERS = {
-  owner: {
-    email: 'proprietario@i7.com.br',
-    altEmail: 'proprietario@i7imob.com.br',
-    password: 'Proprietario@2026',
-    user: {
-      id: '6f4eeb4f-dae0-4a02-9e22-93e8223684a6',
-      name: 'Carlos Alberto Silva',
-      email: 'proprietario@i7.com.br',
-      phone: '(15) 99123-4567',
-      role: UserRole.OWNER,
-      verified: true,
-      createdAt: '2026-01-01T00:00:00.000Z',
-    }
-  },
-  tenant: {
-    email: 'locatario@i7.com.br',
-    altEmail: 'inquilino@i7.com.br',
-    password: 'Locatario@2026',
-    user: {
-      id: '27302d3f-8afb-4c1e-8ea2-249614051d08',
-      name: 'Mariana Costa Tech',
-      email: 'locatario@i7.com.br',
-      phone: '(15) 99789-1234',
-      role: UserRole.TENANT,
-      verified: true,
-      createdAt: '2026-01-01T00:00:00.000Z',
-    }
-  }
-};
-
 // ============================================================================
 // 2. MODELO DE USUÁRIO LOCAL E PERSISTÊNCIA
 // ============================================================================
@@ -179,53 +147,7 @@ export async function loginUser(emailInput: string, passwordInput: string): Prom
     }
   }
 
-  // 2. Verificação do Proprietário Titular Oficial
-  if (email === FIXED_USERS.owner.email.toLowerCase() || email === FIXED_USERS.owner.altEmail.toLowerCase()) {
-    if (password === FIXED_USERS.owner.password) {
-      const session: UserSession = {
-        user: {
-          id: FIXED_USERS.owner.user.id,
-          name: FIXED_USERS.owner.user.name,
-          email: FIXED_USERS.owner.email,
-          phone: FIXED_USERS.owner.user.phone,
-          role: UserRole.OWNER,
-          verified: true,
-          createdAt: FIXED_USERS.owner.user.createdAt,
-        },
-        accessToken: `jwt_owner_session_${Date.now()}`
-      };
-      setCurrentSession(session);
-      logAuditEvent('LOGIN_PROPRIETARIO', 'Portal do Proprietário', 'Login realizado com sucesso', FIXED_USERS.owner.email);
-      return session;
-    } else {
-      throw new Error('Senha incorreta para a conta de Proprietário.');
-    }
-  }
-
-  // 3. Verificação do Inquilino Titular Oficial
-  if (email === FIXED_USERS.tenant.email.toLowerCase() || email === FIXED_USERS.tenant.altEmail.toLowerCase()) {
-    if (password === FIXED_USERS.tenant.password) {
-      const session: UserSession = {
-        user: {
-          id: FIXED_USERS.tenant.user.id,
-          name: FIXED_USERS.tenant.user.name,
-          email: FIXED_USERS.tenant.email,
-          phone: FIXED_USERS.tenant.user.phone,
-          role: UserRole.TENANT,
-          verified: true,
-          createdAt: FIXED_USERS.tenant.user.createdAt,
-        },
-        accessToken: `jwt_tenant_session_${Date.now()}`
-      };
-      setCurrentSession(session);
-      logAuditEvent('LOGIN_INQUILINO', 'Portal do Inquilino', 'Login realizado com sucesso', FIXED_USERS.tenant.email);
-      return session;
-    } else {
-      throw new Error('Senha incorreta para a conta de Inquilino.');
-    }
-  }
-
-  // 4. Verificação de Usuários Cadastrados
+  // 2. Verificação de Usuários Cadastrados
   const localUsers = getLocalAuthUsers();
   const foundUser = localUsers.find(u => u.email.toLowerCase() === email);
 
@@ -282,14 +204,6 @@ export async function registerUser(
   // Bloquear e-mails reservados da administração
   if (email === FIXED_ADMIN.email.toLowerCase() || email === FIXED_ADMIN.altEmail.toLowerCase()) {
     throw new Error('Este e-mail é reservado para a administração da plataforma.');
-  }
-
-  // Checar duplicidade em contas fixas
-  if (
-    email === FIXED_USERS.owner.email.toLowerCase() || 
-    email === FIXED_USERS.tenant.email.toLowerCase()
-  ) {
-    throw new Error('Este e-mail já possui cadastro oficial ativo. Acesse a tela de Login.');
   }
 
   // Checar duplicidade em usuários já cadastrados

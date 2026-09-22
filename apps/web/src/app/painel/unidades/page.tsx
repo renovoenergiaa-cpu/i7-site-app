@@ -52,17 +52,17 @@ export default function UnidadesPage() {
   const [buildingNeighborhood, setBuildingNeighborhood] = useState('Parque Campolim');
   const [buildingCity, setBuildingCity] = useState('Sorocaba');
 
-  const [newBuilding, setNewBuilding] = useState('Residencial Parque Campolim');
+  const [newBuilding, setNewBuilding] = useState('');
   const [newUnitNumber, setNewUnitNumber] = useState('');
   const [newType, setNewType] = useState<'SALA' | 'APARTAMENTO' | 'STUDIO' | 'LOJA' | 'CASA'>('APARTAMENTO');
   const [newFloor, setNewFloor] = useState('');
-  const [newArea, setNewArea] = useState(70);
-  const [newRent, setNewRent] = useState(3800);
-  const [newCondo, setNewCondo] = useState(650);
-  const [newIptu, setNewIptu] = useState(180);
-  const [newOwnerName, setNewOwnerName] = useState('Carlos Alberto Silva');
-  const [newOwnerEmail, setNewOwnerEmail] = useState('proprietario@i7.com.br');
-  const [newOwnerPhone, setNewOwnerPhone] = useState('(15) 99123-4567');
+  const [newArea, setNewArea] = useState(0);
+  const [newRent, setNewRent] = useState(0);
+  const [newCondo, setNewCondo] = useState(0);
+  const [newIptu, setNewIptu] = useState(0);
+  const [newOwnerName, setNewOwnerName] = useState('');
+  const [newOwnerEmail, setNewOwnerEmail] = useState('');
+  const [newOwnerPhone, setNewOwnerPhone] = useState('');
 
   useEffect(() => {
     setUnits(getStoredData('units', INITIAL_UNITS));
@@ -71,13 +71,7 @@ export default function UnidadesPage() {
   const pendingEvaluations = units.filter(u => u.status === 'PENDENTE_AVALIACAO');
 
   // Prédios únicos existentes
-  const existingBuildings = Array.from(new Set([
-    ...units.map(u => u.buildingName),
-    'Residencial Parque Campolim',
-    'Edifício Vila Hortência Corporate',
-    'Condomínio Altos do Campolim',
-    'Edifício Sorocaba Prime'
-  ])).filter(Boolean);
+  const existingBuildings = Array.from(new Set(units.map(u => u.buildingName))).filter(Boolean);
 
   const handleOpenEvaluation = (unit: BuildingUnit) => {
     setEvaluatingUnit(unit);

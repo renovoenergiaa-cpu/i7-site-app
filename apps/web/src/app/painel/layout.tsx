@@ -22,7 +22,8 @@ import {
   Shield,
   UserCheck,
   Calendar,
-  ClipboardCheck
+  ClipboardCheck,
+  Home
 } from 'lucide-react';
 import { getCurrentSession, logoutUser, UserSession } from '@/lib/auth';
 import { 
@@ -49,6 +50,7 @@ import {
 
 const MENU_ITEMS = [
   { name: 'Dashboard', href: '/painel', icon: LayoutDashboard },
+  { name: 'Imóveis para Aluguel', href: '/painel/imoveis', icon: Home },
   { name: 'Prédios / Unidades', href: '/painel/unidades', icon: Building2 },
   { name: 'Agendamento de Visitas', href: '/painel/visitas', icon: Calendar },
   { name: 'Usuários & Perfis', href: '/painel/usuarios', icon: Users },
@@ -104,6 +106,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const inspections = getStoredData<InspectionReport[]>('inspections', INITIAL_INSPECTIONS);
 
         const counts: Record<string, number> = {
+          '/painel/imoveis': units.filter(u => u.status === 'PAUSADO' || u.status === 'PENDENTE_AVALIACAO').length,
           '/painel/unidades': units.filter(u => u.status === 'PENDENTE_AVALIACAO').length,
           '/painel/visitas': visits.filter(v => v.status === 'PENDENTE_CONFIRMACAO').length,
           '/painel/usuarios': users.filter(u => u.status === 'PENDENTE' || u.status === 'CONVIDADO').length,

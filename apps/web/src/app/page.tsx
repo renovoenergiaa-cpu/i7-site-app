@@ -132,16 +132,17 @@ export default function HomePage() {
                   </div>
 
                   {/* Quick Filters */}
+                  {/* Quick Filters */}
                   <div className="mt-6 flex flex-wrap items-center gap-2 text-xs font-medium">
                     <span className="text-text-muted">Populares:</span>
-                    <Link href="/imoveis?neighborhood=Pinheiros" className="px-3 py-1.5 rounded-full bg-surface-hover text-text-primary hover:bg-border transition-colors">
-                      Pinheiros
+                    <Link href="/imoveis?neighborhood=Parque+Campolim" className="px-3 py-1.5 rounded-full bg-surface-hover text-text-primary hover:bg-border transition-colors">
+                      Parque Campolim
                     </Link>
-                    <Link href="/imoveis?neighborhood=Itaim+Bibi" className="px-3 py-1.5 rounded-full bg-surface-hover text-text-primary hover:bg-border transition-colors">
-                      Itaim Bibi
+                    <Link href="/imoveis?neighborhood=Vila+Hort%C3%AAncia" className="px-3 py-1.5 rounded-full bg-surface-hover text-text-primary hover:bg-border transition-colors">
+                      Vila Hortência
                     </Link>
-                    <Link href="/imoveis?type=STUDIO" className="px-3 py-1.5 rounded-full bg-surface-hover text-text-primary hover:bg-border transition-colors">
-                      Studios
+                    <Link href="/imoveis?type=APARTMENT" className="px-3 py-1.5 rounded-full bg-surface-hover text-text-primary hover:bg-border transition-colors">
+                      Apartamentos
                     </Link>
                   </div>
                 </>
@@ -186,68 +187,86 @@ export default function HomePage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {properties.slice(0, 3).map((prop) => (
-            <div key={prop.id} className="rounded-2xl glass-card overflow-hidden group flex flex-col h-full">
-              
-              {/* Photo Thumbnail */}
-              <div className="relative h-64 w-full bg-surface-hover overflow-hidden">
-                <img 
-                  src={prop.media[0]?.url || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800'} 
-                  alt={prop.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
+        {properties.length === 0 ? (
+          <div className="p-12 text-center rounded-3xl bg-white border border-border shadow-sm space-y-4">
+            <Building className="w-12 h-12 text-brand-lime/50 mx-auto" />
+            <div className="space-y-1">
+              <h3 className="text-xl font-extrabold text-text-primary">Cadastre seu primeiro imóvel na i7</h3>
+              <p className="text-sm text-text-secondary max-w-md mx-auto">
+                Publique seu imóvel para locação ou venda e alcance milhares de locatários e compradores com gestão digital completa.
+              </p>
+            </div>
+            <Link
+              href="/anunciar"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-lime text-white font-bold text-sm shadow-md hover:bg-brand-lime-hover transition-all"
+            >
+              Anunciar meu imóvel agora <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {properties.slice(0, 3).map((prop) => (
+              <div key={prop.id} className="rounded-2xl glass-card overflow-hidden group flex flex-col h-full">
                 
-                {/* Badges */}
-                <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
-                  <span className="px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wide bg-brand-lime text-white shadow-md">
-                    Para Alugar
-                  </span>
-                  {prop.petFriendly && (
-                    <span className="px-3 py-1 rounded-md text-xs font-semibold bg-white text-text-primary shadow-sm">
-                      Pet Friendly
+                {/* Photo Thumbnail */}
+                <div className="relative h-64 w-full bg-surface-hover overflow-hidden">
+                  <img 
+                    src={prop.media[0]?.url || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800'} 
+                    alt={prop.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  
+                  {/* Badges */}
+                  <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
+                    <span className="px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wide bg-brand-lime text-white shadow-md">
+                      Para Alugar
                     </span>
-                  )}
+                    {prop.petFriendly && (
+                      <span className="px-3 py-1 rounded-md text-xs font-semibold bg-white text-text-primary shadow-sm">
+                        Pet Friendly
+                      </span>
+                    )}
+                  </div>
+
+                  <button 
+                    onClick={() => toggleFavorite(prop)}
+                    className="absolute top-4 right-4 p-2.5 rounded-full bg-white/90 text-text-muted hover:text-red-500 hover:bg-white shadow-sm transition-all"
+                  >
+                    <Heart className={`w-4 h-4 ${isFavorite(prop.id) ? 'fill-red-500 text-red-500' : ''}`} />
+                  </button>
                 </div>
 
-                <button 
-                  onClick={() => toggleFavorite(prop)}
-                  className="absolute top-4 right-4 p-2.5 rounded-full bg-white/90 text-text-muted hover:text-red-500 hover:bg-white shadow-sm transition-all"
-                >
-                  <Heart className={`w-4 h-4 ${isFavorite(prop.id) ? 'fill-red-500 text-red-500' : ''}`} />
-                </button>
-              </div>
+                {/* Property Details */}
+                <div className="p-6 flex flex-col flex-grow">
+                  <div className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5" /> {prop.neighborhood}, {prop.city}
+                  </div>
+                  <h3 className="text-lg font-bold text-text-primary line-clamp-2 mb-4 group-hover:text-brand-lime transition-colors">
+                    {prop.title}
+                  </h3>
+                  
+                  <div className="flex items-center gap-4 text-sm text-text-secondary mb-6">
+                    <span><strong>{prop.bedrooms}</strong> quartos</span>
+                    <span className="w-1 h-1 rounded-full bg-border"></span>
+                    <span><strong>{prop.bathrooms}</strong> banheiros</span>
+                    <span className="w-1 h-1 rounded-full bg-border"></span>
+                    <span><strong>{prop.areaSqm}</strong> m²</span>
+                  </div>
 
-              {/* Property Details */}
-              <div className="p-6 flex flex-col flex-grow">
-                <div className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2 flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5" /> {prop.neighborhood}, {prop.city}
-                </div>
-                <h3 className="text-lg font-bold text-text-primary line-clamp-2 mb-4 group-hover:text-brand-lime transition-colors">
-                  {prop.title}
-                </h3>
-                
-                <div className="flex items-center gap-4 text-sm text-text-secondary mb-6">
-                  <span><strong>{prop.bedrooms}</strong> quartos</span>
-                  <span className="w-1 h-1 rounded-full bg-border"></span>
-                  <span><strong>{prop.bathrooms}</strong> banheiros</span>
-                  <span className="w-1 h-1 rounded-full bg-border"></span>
-                  <span><strong>{prop.areaSqm}</strong> m²</span>
-                </div>
-
-                <div className="mt-auto pt-4 border-t border-border flex items-end justify-between">
-                  <div>
-                    <span className="text-xs text-text-muted block mb-0.5">Aluguel:</span>
-                    <div className="text-2xl font-black text-brand-lime">
-                      R$ {prop.totalMonthly?.toLocaleString('pt-BR')} <span className="text-sm font-normal text-text-secondary">/mês</span>
+                  <div className="mt-auto pt-4 border-t border-border flex items-end justify-between">
+                    <div>
+                      <span className="text-xs text-text-muted block mb-0.5">Aluguel:</span>
+                      <div className="text-2xl font-black text-brand-lime">
+                        R$ {prop.totalMonthly?.toLocaleString('pt-BR')} <span className="text-sm font-normal text-text-secondary">/mês</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-            </div>
-          ))}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
     </div>

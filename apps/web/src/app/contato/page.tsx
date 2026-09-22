@@ -203,7 +203,7 @@ export default function ContactPage() {
                       value={formData.name}
                       onChange={handleChange}
                       className="w-full px-4 py-3 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime transition-all font-medium"
-                      placeholder="Ex: Carlos Alberto Silva"
+                      placeholder="Digite seu nome completo"
                     />
                   </div>
 

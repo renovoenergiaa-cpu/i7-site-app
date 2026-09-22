@@ -22,10 +22,10 @@ export default function DespesasAdminPage() {
 
   // New expense form
   const [newDescription, setNewDescription] = useState('');
-  const [newUnit, setNewUnit] = useState('Sala 101 - Paulista Corporate');
-  const [newOwner, setNewOwner] = useState('Eduardo Silveira Ramos');
+  const [newUnit, setNewUnit] = useState('');
+  const [newOwner, setNewOwner] = useState('');
   const [newCategory, setNewCategory] = useState<'MANUTENCAO' | 'IPTU' | 'CONDOMINIO' | 'TAXA_EXTRA' | 'JURIDICO'>('MANUTENCAO');
-  const [newAmount, setNewAmount] = useState(250);
+  const [newAmount, setNewAmount] = useState<number | ''>('');
   const [newReceipt, setNewReceipt] = useState('');
 
   useEffect(() => {
@@ -61,6 +61,7 @@ export default function DespesasAdminPage() {
 
     setIsModalOpen(false);
     setNewDescription('');
+    setNewAmount('');
     setNewReceipt('');
   };
 
@@ -260,6 +261,7 @@ export default function DespesasAdminPage() {
                   <label className="block text-xs font-bold text-text-secondary mb-1">Unidade</label>
                   <input
                     type="text"
+                    placeholder="Ex: Apto 101"
                     value={newUnit}
                     onChange={(e) => setNewUnit(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
@@ -269,6 +271,7 @@ export default function DespesasAdminPage() {
                   <label className="block text-xs font-bold text-text-secondary mb-1">Proprietário</label>
                   <input
                     type="text"
+                    placeholder="Nome do proprietário"
                     value={newOwner}
                     onChange={(e) => setNewOwner(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
@@ -295,8 +298,9 @@ export default function DespesasAdminPage() {
                   <label className="block text-xs font-bold text-text-secondary mb-1">Valor do Débito (R$)</label>
                   <input
                     type="number"
+                    placeholder="0,00"
                     value={newAmount}
-                    onChange={(e) => setNewAmount(Number(e.target.value))}
+                    onChange={(e) => setNewAmount(e.target.value === '' ? '' : Number(e.target.value))}
                     className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text-primary focus:outline-none focus:border-brand-lime"
                   />
                 </div>

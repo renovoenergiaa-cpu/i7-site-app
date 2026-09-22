@@ -61,13 +61,9 @@ export default function AssinaturaDigitalPage() {
         found = contracts.find(c => c.id === prop.contractId);
       }
     }
-    if (!found && contracts.length > 0) {
-      found = contracts[0];
-    }
-
     if (found) {
       setContract(found);
-      setSignerCpf(found.tenantEmail === 'lucas.mendes@email.com' ? '341.892.418-09' : '289.441.908-72');
+      setSignerCpf('');
       // Gera token de autenticação de segurança
       setSecurityToken(`i7-AUTH-${Math.floor(10000 + Math.random() * 90000)}`);
     }

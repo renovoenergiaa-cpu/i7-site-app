@@ -13,7 +13,7 @@ import {
   X,
   UserCheck
 } from 'lucide-react';
-import { GestaoAnnouncement, INITIAL_ANNOUNCEMENTS, getStoredData, saveStoredData } from '@/lib/gestaoData';
+import { GestaoAnnouncement, INITIAL_ANNOUNCEMENTS, INITIAL_UNITS, getStoredData, saveStoredData } from '@/lib/gestaoData';
 
 export default function AnnouncementsAdminPage() {
   const [announcements, setAnnouncements] = useState<GestaoAnnouncement[]>([]);
@@ -34,6 +34,7 @@ export default function AnnouncementsAdminPage() {
     e.preventDefault();
     if (!newTitle || !newContent) return;
 
+    const unitsCount = getStoredData('units', INITIAL_UNITS).length;
     const newAnn: GestaoAnnouncement = {
       id: `ann-${Date.now()}`,
       title: newTitle,
@@ -41,7 +42,7 @@ export default function AnnouncementsAdminPage() {
       unitScope: newScope,
       targetRole: newTargetRole,
       createdAt: new Date().toLocaleDateString('pt-BR'),
-      totalTargetUsers: 18,
+      totalTargetUsers: Math.max(unitsCount, 1),
       readBy: []
     };
 
