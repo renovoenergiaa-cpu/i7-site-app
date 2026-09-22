@@ -171,7 +171,9 @@ export default function UnidadesPage() {
       street: buildingAddress || finalBuildingName,
       neighborhood: buildingNeighborhood || 'Vila Hortência',
       city: buildingCity || 'Sorocaba',
-      state: 'SP'
+      state: 'SP',
+      latitude: -23.5152 + ((units.length % 5) * 0.005),
+      longitude: -47.4526 + ((units.length % 4) * 0.005),
     };
 
     const updated = [newUnit, ...units];

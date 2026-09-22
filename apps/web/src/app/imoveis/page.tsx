@@ -42,19 +42,22 @@ function SearchPropertiesContent() {
   const filteredProperties = properties.filter(p => {
     const priceToCompare = searchMode === 'buy' ? (p.salePrice || p.rentPrice * 180) : (p.totalMonthly || p.rentPrice);
     
-    // Check location (matching street, neighborhood, city and title)
-    if (searchNeighborhood) {
-      const searchTerms = searchNeighborhood.toLowerCase().split(/[,-]/).map(t => t.trim()).filter(Boolean);
-      const matchesLocation = searchTerms.some(term => 
-        (p.city && p.city.toLowerCase().includes(term)) ||
-        (p.neighborhood && p.neighborhood.toLowerCase().includes(term)) ||
-        (p.street && p.street.toLowerCase().includes(term)) ||
-        (p.title && p.title.toLowerCase().includes(term))
-      );
+    // Check location & keywords (matching street, neighborhood, city, title and description)
+    if (searchNeighborhood && searchNeighborhood.trim().length > 0) {
+      const clean = (str?: string) => (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      const rawQuery = clean(searchNeighborhood);
+      const searchTerms = rawQuery.split(/[,-]/).map(t => t.trim()).filter(Boolean);
+
+      const propText = `${clean(p.title)} ${clean(p.neighborhood)} ${clean(p.street)} ${clean(p.city)} ${clean(p.description)} ${clean(p.number)}`;
+
+      const matchesLocation = searchTerms.some(term => propText.includes(term)) || propText.includes(rawQuery);
       if (!matchesLocation) return false;
     }
 
-    if (selectedType && p.type !== selectedType) return false;
+    if (selectedType) {
+      const pTypeNorm = (p.type === 'APARTMENT' || (p.type as any) === 'APARTAMENTO') ? 'APARTMENT' : p.type;
+      if (pTypeNorm !== selectedType) return false;
+    }
     if (priceToCompare > maxPrice) return false;
     if (bedrooms && p.bedrooms < bedrooms) return false;
     if (bathrooms && p.bathrooms < bathrooms) return false;

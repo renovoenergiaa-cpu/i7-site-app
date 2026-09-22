@@ -41,8 +41,9 @@ export default function PropertyDetailPage() {
       setClientPhone(session.user.phone || '');
     }
 
-    if (params.id) {
-      fetchPropertyById(params.id as string)
+    const propertyId = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
+    if (propertyId) {
+      fetchPropertyById(propertyId)
         .then(data => {
           setProperty(data);
           if (data) setProposalAmount(data.rentPrice);
@@ -53,7 +54,7 @@ export default function PropertyDetailPage() {
     } else {
       setLoading(false);
     }
-  }, [params.id]);
+  }, [params?.id]);
 
   if (loading) {
     return (

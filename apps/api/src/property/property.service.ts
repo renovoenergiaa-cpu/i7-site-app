@@ -75,10 +75,10 @@ export class PropertyService {
         return properties.map((prop) => this.calculateFees(prop));
       }
     } catch (error) {
-      console.warn('⚠️ Banco de dados offline ou sem dados, retornando propriedades de teste i7.');
+      console.warn('⚠️ Banco de dados offline ou sem dados');
     }
 
-    return SEED_FALLBACK_PROPERTIES;
+    return [];
   }
 
   async findOne(id: string) {
@@ -166,68 +166,5 @@ export class PropertyService {
   }
 }
 
-const SEED_FALLBACK_PROPERTIES = [
-  {
-    id: 'prop-1',
-    ownerId: 'owner-1',
-    title: 'Studio High-Tech em Pinheiros com Varanda Gourmet',
-    description: 'Studio conceito aberto totalmente mobiliado com fechadura eletrônica, automação residencial Alexa e vista panorâmica para o por do sol de Pinheiros.',
-    type: 'STUDIO',
-    status: 'PUBLISHED',
-    street: 'Rua dos Pinheiros',
-    number: '850',
-    neighborhood: 'Pinheiros',
-    city: 'São Paulo',
-    state: 'SP',
-    zipCode: '05422-001',
-    latitude: -23.5645,
-    longitude: -46.6898,
-    rentPrice: 3800,
-    condoFee: 650,
-    iptuFee: 180,
-    serviceFee: 304,
-    totalMonthly: 4934,
-    bedrooms: 1,
-    bathrooms: 1,
-    parkingSpots: 1,
-    areaSqm: 42,
-    furnished: true,
-    petFriendly: true,
-    hasVirtualTour: true,
-    media: [
-      { id: 'm1', propertyId: 'prop-1', url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1000', type: 'PHOTO', order: 0 },
-      { id: 'm2', propertyId: 'prop-1', url: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1000', type: 'PHOTO', order: 1 },
-    ],
-  },
-  {
-    id: 'prop-2',
-    ownerId: 'owner-1',
-    title: 'Apartamento de Luxo 3 Dorms no Itaim Bibi com Automação',
-    description: 'Espaçoso apartamento reformado por arquiteto renomado. Possui 3 suítes, ar condicionado split em todos os ambientes e 2 vagas demarcadas.',
-    type: 'APARTMENT',
-    status: 'PUBLISHED',
-    street: 'Rua Joaquim Floriano',
-    number: '420',
-    neighborhood: 'Itaim Bibi',
-    city: 'São Paulo',
-    state: 'SP',
-    zipCode: '04534-002',
-    latitude: -23.5841,
-    longitude: -46.6749,
-    rentPrice: 8500,
-    condoFee: 1400,
-    iptuFee: 450,
-    serviceFee: 680,
-    totalMonthly: 11030,
-    bedrooms: 3,
-    bathrooms: 3,
-    parkingSpots: 2,
-    areaSqm: 118,
-    furnished: true,
-    petFriendly: true,
-    hasVirtualTour: true,
-    media: [
-      { id: 'm3', propertyId: 'prop-2', url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1000', type: 'PHOTO', order: 0 },
-    ],
-  }
-];
+const SEED_FALLBACK_PROPERTIES: any[] = [];
+

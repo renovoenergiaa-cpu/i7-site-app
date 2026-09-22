@@ -23,15 +23,11 @@ export const PropertyMap: React.FC<PropertyMapProps> = ({ properties, searchMode
 
   // Função para obter as coordenadas reais e condicionadas do imóvel
   const getExactPropertyCoords = (prop: PropertyDTO, index: number): [number, number] => {
-    if (
-      typeof prop.latitude === 'number' && 
-      typeof prop.longitude === 'number' && 
-      !isNaN(prop.latitude) && 
-      !isNaN(prop.longitude) &&
-      prop.latitude !== 0 && 
-      prop.longitude !== 0
-    ) {
-      return [prop.latitude, prop.longitude];
+    const lat = typeof prop.latitude === 'string' ? parseFloat(prop.latitude) : Number(prop.latitude);
+    const lng = typeof prop.longitude === 'string' ? parseFloat(prop.longitude) : Number(prop.longitude);
+
+    if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+      return [lat, lng];
     }
 
     // Fallback condicionado em Sorocaba caso não haja coordenadas salvas

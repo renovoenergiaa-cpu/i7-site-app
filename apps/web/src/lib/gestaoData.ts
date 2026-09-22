@@ -240,29 +240,13 @@ export const INITIAL_SETTINGS: GestaoSettings = {
   autoDunningEnabled: true
 };
 
-// Auto-purge antigo legado de mocks no cliente
-function ensureCleanProductionStorage() {
-  if (typeof window === 'undefined') return;
-  const CLEAN_VERSION = 'i7_clean_prod_v2';
-  if (localStorage.getItem(CLEAN_VERSION) !== 'true') {
-    // Purga chaves antigas com dados de exemplo
-    const legacyKeys = [
-      'units', 'contracts', 'boletos', 'payments', 
-      'maintenances', 'documents', 'announcements', 
-      'expenses', 'scheduled_visits', 'inspections', 'proposals'
-    ];
-    legacyKeys.forEach(k => localStorage.removeItem(`i7_gestao_${k}`));
-    localStorage.setItem(CLEAN_VERSION, 'true');
-  }
-}
-
-// LocalStorage helpers to simulate database operations across all screens
+// Storage helpers to simulate database operations across all screens
 export function getStoredData<T>(key: string, initialData: T): T {
   if (typeof window === 'undefined') return initialData;
-  ensureCleanProductionStorage();
-  const item = localStorage.getItem(`i7_gestao_${key}`);
+  const item = localStorage.getItem(`i7_gestao_${key}`) || localStorage.getItem(key);
   if (!item) {
     localStorage.setItem(`i7_gestao_${key}`, JSON.stringify(initialData));
+    localStorage.setItem(key, JSON.stringify(initialData));
     return initialData;
   }
   try {
@@ -275,6 +259,7 @@ export function getStoredData<T>(key: string, initialData: T): T {
 export function saveStoredData<T>(key: string, data: T): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(`i7_gestao_${key}`, JSON.stringify(data));
+  localStorage.setItem(key, JSON.stringify(data));
 }
 
 export function logAuditEvent(action: string, entity: string, details: string, user?: string): void {
