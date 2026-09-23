@@ -662,7 +662,7 @@ export default function UnidadesPage() {
               </div>
               <div className="p-2.5 rounded-xl bg-surface border border-border">
                 <span className="text-[10px] text-text-secondary uppercase block font-bold">Quartos</span>
-                <strong className="text-xs text-text-primary">{evaluatingUnit.bedrooms || 1}</strong>
+                <strong className="text-xs text-text-primary">{evaluatingUnit.bedrooms ?? 0}</strong>
               </div>
               <div className="p-2.5 rounded-xl bg-surface border border-border">
                 <span className="text-[10px] text-text-secondary uppercase block font-bold">Proprietário</span>

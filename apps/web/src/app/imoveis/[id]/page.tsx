@@ -141,7 +141,7 @@ export default function PropertyDetailPage() {
   };
 
   const getWhatsAppPropertyUrl = () => {
-    if (!property) return 'https://wa.me/551130904000';
+    if (!property) return 'https://wa.me/5515988145050';
 
     const rentFormatted = property.rentPrice
       ? `R$ ${property.rentPrice.toLocaleString('pt-BR')}/mês`
@@ -154,7 +154,7 @@ export default function PropertyDetailPage() {
 
     const message = `Olá, equipe i7 Inteligência Imobiliária! 👋\nTenho interesse e gostaria de mais informações sobre este imóvel que vi no site:\n\n🏢 *${property.title}*\n📍 Localização: ${addressFormatted}\n💰 Valor: ${rentFormatted}${totalFormatted}\n📐 Área: ${property.areaSqm} m² | ${property.bedrooms} Quartos | ${property.bathrooms} Banheiros | ${property.parkingSpots} Vagas\n🔗 Link do Imóvel: ${urlImovel}\n\nPoderiam me passar mais informações e disponibilidade para visita? Obrigado!`;
 
-    return `https://wa.me/551130904000?text=${encodeURIComponent(message)}`;
+    return `https://wa.me/5515988145050?text=${encodeURIComponent(message)}`;
   };
 
   return (
@@ -171,7 +171,7 @@ export default function PropertyDetailPage() {
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             {scheduledVisitData && (
               <a
-                href={`https://wa.me/551130904000?text=${encodeURIComponent(
+                href={`https://wa.me/5515988145050?text=${encodeURIComponent(
                   `Olá! Gostaria de falar sobre a minha solicitação de visita presencial ao imóvel "${property.title}" agendada para ${scheduledVisitData.scheduledDate.replace('T', ' às ')}. Meu nome é ${scheduledVisitData.clientName}.`
                 )}`}
                 target="_blank"

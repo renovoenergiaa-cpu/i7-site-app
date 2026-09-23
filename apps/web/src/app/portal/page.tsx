@@ -665,7 +665,7 @@ export default function PortalUnificadoPage() {
                     <span>Cadastrar Meu Primeiro Imóvel</span>
                   </Link>
                   <a
-                    href="https://wa.me/5515999990000?text=Ol%C3%A1%2C%20acabei%20de%20me%20cadastrar%20no%20portal%20e%20gostaria%20de%20cadastrar%20meu%20im%C3%B3vel."
+                    href="https://wa.me/5515988145050?text=Ol%C3%A1%2C%20acabei%20de%20me%20cadastrar%20no%20portal%20e%20gostaria%20de%20cadastrar%20meu%20im%C3%B3vel."
                     target="_blank"
                     rel="noreferrer"
                     className="px-5 py-2.5 rounded-xl bg-surface border border-border hover:border-brand-lime text-text-primary text-xs font-bold transition-all text-center"
@@ -874,7 +874,7 @@ export default function PortalUnificadoPage() {
                       Ver Imóveis Disponíveis
                     </Link>
                     <a
-                      href="https://wa.me/5515999990000?text=Ol%C3%A1%2C%20sou%20inquilino%20e%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20meu%20contrato."
+                      href="https://wa.me/5515988145050?text=Ol%C3%A1%2C%20sou%20inquilino%20e%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20meu%20contrato."
                       target="_blank"
                       rel="noreferrer"
                       className="px-5 py-2.5 rounded-xl bg-surface border border-border hover:border-brand-lime text-text-primary text-xs font-bold transition-all text-center"

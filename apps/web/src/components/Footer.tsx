@@ -21,9 +21,20 @@ export const Footer: React.FC = () => {
             <p className="text-sm text-text-secondary leading-relaxed">
               Plataforma digital de Inteligência Imobiliária. Tecnologia moderna, burocracia zero e segurança completa para locação e compra de imóveis.
             </p>
-            <div className="flex items-center gap-2 text-xs text-text-muted">
-              <Lock className="w-3.5 h-3.5 text-brand-lime" />
-              Contratos com Assinatura Eletrônica Válida
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-xs text-text-muted">
+                <Lock className="w-3.5 h-3.5 text-brand-lime" />
+                Contratos com Assinatura Eletrônica Válida
+              </div>
+              <a
+                href="https://wa.me/5515988145050"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all text-xs font-bold w-fit"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>WhatsApp: (15) 98814-5050</span>
+              </a>
             </div>
           </div>
 

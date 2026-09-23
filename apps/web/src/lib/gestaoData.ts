@@ -229,7 +229,7 @@ export const INITIAL_SETTINGS: GestaoSettings = {
   organizationName: 'i7 Inteligência Imobiliária S.A.',
   cnpj: '45.123.890/0001-99',
   email: 'contato@i7imob.com.br',
-  phone: '(11) 3090-4000',
+  phone: '(15) 98814-5050',
   address: 'R. Cel. Nogueira Padilha, 374 - Vila Hortência, Sorocaba - SP',
   defaultAdminFeePercent: 10,
   defaultFinePercent: 10,

@@ -30,7 +30,7 @@ export default function ContactPage() {
 
   // Número oficial de WhatsApp da i7 (DDD + Telefone)
   // Formato internacional: 55 + DDD + Número
-  const WHATSAPP_NUMBER = '551130904000';
+  const WHATSAPP_NUMBER = '5515988145050';
   const OFFICIAL_EMAIL = 'contato@i7imob.com.br';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -121,7 +121,7 @@ export default function ContactPage() {
                     </span>
                   </div>
                   <div className="text-base font-black text-text-primary group-hover:text-emerald-600 transition-colors">
-                    (11) 3090-4000
+                    (15) 98814-5050
                   </div>
                   <p className="text-xs text-text-secondary mt-0.5">Clique para abrir e falar agora</p>
                 </div>

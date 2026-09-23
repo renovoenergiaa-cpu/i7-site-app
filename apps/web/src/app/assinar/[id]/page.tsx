@@ -238,7 +238,7 @@ export default function AssinaturaDigitalPage() {
 
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <a
-                href="https://wa.me/5515999990000?text=Ol%C3%A1%2C%20acabei%20de%20assinar%20o%20contrato%20digitalmente!%20Gostaria%20de%20agendar%20a%20retirada%20das%20chaves."
+                href="https://wa.me/5515988145050?text=Ol%C3%A1%2C%20acabei%20de%20assinar%20o%20contrato%20digitalmente!%20Gostaria%20de%20agendar%20a%20retirada%20das%20chaves."
                 target="_blank"
                 rel="noreferrer"
                 className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"

@@ -31,7 +31,7 @@ export function unitToPropertyDTO(u: BuildingUnit, index: number = 0): PropertyD
     title: resolvedTitle,
     description: u.description || (u.adminFeedback 
       ? `[Parecer i7]: ${u.adminFeedback}` 
-      : `Imóvel avaliado e aprovado pela i7 em ${u.buildingName || u.neighborhood || 'Sorocaba'}. Excelente estado de conservação, com ${u.areaSqm || 50}m², ${u.bedrooms || 1} quarto(s) e infraestrutura completa.`),
+      : `Imóvel avaliado e aprovado pela i7 em ${u.buildingName || u.neighborhood || 'Sorocaba'}. Excelente estado de conservação, com ${u.areaSqm || 50}m², ${u.bedrooms ?? 0} quarto(s) e infraestrutura completa.`),
     type: resolvedType,
     status: 'PUBLISHED' as any,
     street: u.street || u.address || u.buildingName || 'Rua Principal',
@@ -48,9 +48,9 @@ export function unitToPropertyDTO(u: BuildingUnit, index: number = 0): PropertyD
     iptuFee: adminOrIptuVal,
     serviceFee: 0,
     totalMonthly: rentVal + condoVal + adminOrIptuVal,
-    bedrooms: Number(u.bedrooms) || 1,
-    bathrooms: Number(u.bathrooms) || 1,
-    parkingSpots: Number(u.parkingSpaces) || 0,
+    bedrooms: typeof u.bedrooms === 'number' ? u.bedrooms : (u.bedrooms !== undefined && u.bedrooms !== null ? Number(u.bedrooms) : 0),
+    bathrooms: typeof u.bathrooms === 'number' ? u.bathrooms : (u.bathrooms !== undefined && u.bathrooms !== null ? Number(u.bathrooms) : 1),
+    parkingSpots: typeof u.parkingSpaces === 'number' ? u.parkingSpaces : (u.parkingSpaces !== undefined && u.parkingSpaces !== null ? Number(u.parkingSpaces) : 0),
     areaSqm: Number(u.areaSqm) || 50,
     furnished: Boolean(u.furnished),
     petFriendly: u.petFriendly !== false,

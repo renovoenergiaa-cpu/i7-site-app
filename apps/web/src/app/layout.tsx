@@ -1,6 +1,7 @@
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { WhatsAppFloating } from '@/components/WhatsAppFloating';
 
 export const metadata = {
   title: 'i7 Proptech | Imóveis em São Paulo',
@@ -18,7 +19,9 @@ export default function RootLayout({
         <Navbar />
         <main className="flex-grow">{children}</main>
         <Footer />
+        <WhatsAppFloating />
       </body>
     </html>
   );
 }
+

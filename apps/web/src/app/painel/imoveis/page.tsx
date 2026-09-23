@@ -91,7 +91,7 @@ export default function PainelImoveisPage() {
   // Proprietário
   const [formOwnerName, setFormOwnerName] = useState('i7 Inteligência Imobiliária');
   const [formOwnerEmail, setFormOwnerEmail] = useState('admin@i7.com.br');
-  const [formOwnerPhone, setFormOwnerPhone] = useState('(15) 3090-4000');
+  const [formOwnerPhone, setFormOwnerPhone] = useState('(15) 98814-5050');
 
   // Feedback Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -161,7 +161,7 @@ export default function PainelImoveisPage() {
     setFormCondo('');
     setFormAdminFee('');
     setFormArea('');
-    setFormBedrooms('1');
+    setFormBedrooms('0');
     setFormBathrooms('1');
     setFormParking('0');
     setFormFurnished(false);
@@ -171,7 +171,7 @@ export default function PainelImoveisPage() {
     setPublishImmediately(true);
     setFormOwnerName('i7 Inteligência Imobiliária');
     setFormOwnerEmail('admin@i7.com.br');
-    setFormOwnerPhone('(15) 3090-4000');
+    setFormOwnerPhone('(15) 98814-5050');
     setIsModalOpen(true);
   };
 
@@ -197,7 +197,7 @@ export default function PainelImoveisPage() {
     setFormCondo(unit.condoValue ? String(unit.condoValue) : '');
     setFormAdminFee((unit.adminFeeValue ?? unit.iptuValue) ? String(unit.adminFeeValue ?? unit.iptuValue) : '');
     setFormArea(unit.areaSqm ? String(unit.areaSqm) : '');
-    setFormBedrooms(unit.bedrooms ? String(unit.bedrooms) : '1');
+    setFormBedrooms(unit.bedrooms !== undefined && unit.bedrooms !== null ? String(unit.bedrooms) : '0');
     setFormBathrooms(unit.bathrooms ? String(unit.bathrooms) : '1');
     setFormParking(unit.parkingSpaces !== undefined ? String(unit.parkingSpaces) : '0');
     setFormFurnished(!!unit.furnished);
@@ -209,7 +209,7 @@ export default function PainelImoveisPage() {
     setPublishImmediately(unit.status === 'DISPONIVEL');
     setFormOwnerName(unit.ownerName || 'i7 Inteligência Imobiliária');
     setFormOwnerEmail(unit.ownerEmail || 'admin@i7.com.br');
-    setFormOwnerPhone(unit.ownerPhone || '(15) 3090-4000');
+    setFormOwnerPhone(unit.ownerPhone || '(15) 98814-5050');
     setIsModalOpen(true);
   };
 
@@ -801,7 +801,7 @@ export default function PainelImoveisPage() {
                         <span className="text-text-muted block text-[10px] font-bold">Quartos</span>
                         <span className="font-black text-text-primary flex items-center justify-center gap-1 mt-0.5">
                           <Bed className="w-3 h-3 text-text-muted" />
-                          {unit.bedrooms || 1}
+                          {unit.bedrooms ?? 0}
                         </span>
                       </div>
                       <div>

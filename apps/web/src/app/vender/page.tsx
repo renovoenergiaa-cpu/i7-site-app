@@ -43,7 +43,7 @@ export default function SellPropertyPage() {
       ownerName: ownerName || 'Proprietário Interessado',
       ownerEmail: ownerEmail || 'contato@anunciante.com.br',
       ownerPhone: ownerPhone || '(15) 99999-9999',
-      bedrooms: Number(bedrooms) || 1,
+      bedrooms: bedrooms !== '' ? (Number(bedrooms) || 0) : 0,
       bathrooms: 2,
       parkingSpaces: 1,
       photosCount: 3,
@@ -204,6 +204,7 @@ export default function SellPropertyPage() {
                   onChange={(e) => setBedrooms(e.target.value)}
                   className="w-full bg-surface-hover border border-border rounded-xl p-3.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-lime/20"
                 >
+                  <option value="0">0 Quartos (Comercial / Terreno / Studio)</option>
                   <option value="1">1 Quarto</option>
                   <option value="2">2 Quartos</option>
                   <option value="3">3 Quartos</option>

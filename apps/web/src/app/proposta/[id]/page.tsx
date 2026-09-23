@@ -221,7 +221,7 @@ export default function PropostaDigitalPage() {
 
             <div className="pt-2">
               <a
-                href="https://wa.me/5515999990000?text=Ol%C3%A1%2C%20acabei%20de%20enviar%20minha%20proposta%20de%20loca%C3%A7%C3%A3o%20pelo%20site%20da%20i7!"
+                href="https://wa.me/5515988145050?text=Ol%C3%A1%2C%20acabei%20de%20enviar%20minha%20proposta%20de%20loca%C3%A7%C3%A3o%20pelo%20site%20da%20i7!"
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-md transition-all"

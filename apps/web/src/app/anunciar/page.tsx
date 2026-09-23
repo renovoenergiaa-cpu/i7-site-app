@@ -27,7 +27,7 @@ export default function AnnouncePropertyPage() {
   const [longitude, setLongitude] = useState(-47.460);
 
   const [propertyType, setPropertyType] = useState('APARTMENT');
-  const [bedrooms, setBedrooms] = useState('1');
+  const [bedrooms, setBedrooms] = useState('0');
   const [bathrooms, setBathrooms] = useState('1');
   const [parkingSpaces, setParkingSpaces] = useState('0');
   const [petFriendly, setPetFriendly] = useState(false);
@@ -114,7 +114,7 @@ export default function AnnouncePropertyPage() {
     const existingUnits = getStoredData<BuildingUnit[]>('units', INITIAL_UNITS);
     const ownerName = session?.user?.name || 'Proprietário Anunciante';
     const ownerEmail = session?.user?.email || 'anunciante@i7.com.br';
-    const ownerPhone = session?.user?.phone || '(15) 3090-4000';
+    const ownerPhone = session?.user?.phone || '(15) 98814-5050';
 
     // Imagens padrão de alta resolução para caso o usuário anexe sem arquivos pesados
     const defaultSamplePhotos = [
@@ -144,7 +144,7 @@ export default function AnnouncePropertyPage() {
       ownerName,
       ownerEmail,
       ownerPhone,
-      bedrooms: Number(bedrooms) || 1,
+      bedrooms: bedrooms !== '' ? Number(bedrooms) : 0,
       bathrooms: Number(bathrooms) || 1,
       parkingSpaces: Number(parkingSpaces) || 0,
       petFriendly,
@@ -429,12 +429,12 @@ export default function AnnouncePropertyPage() {
                 <label className="text-xs font-bold text-text-secondary uppercase">Quartos</label>
                 <input 
                   type="number" 
-                  placeholder="Ex: 2"
+                  placeholder="0"
                   value={bedrooms}
                   onChange={(e) => setBedrooms(e.target.value)}
                   className="w-full bg-surface-card border border-border rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-lime"
                   required
-                  min="1"
+                  min="0"
                 />
               </div>
 
