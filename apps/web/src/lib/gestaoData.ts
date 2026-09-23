@@ -184,8 +184,47 @@ export interface GestaoSettings {
   autoDunningEnabled: boolean;
 }
 
-// Initial Seed Data - Base Oficial Limpa de Produção
-export const INITIAL_UNITS: BuildingUnit[] = [];
+// Initial Seed Data - Base Oficial com Imóvel Real Cadastrado
+export const INITIAL_UNITS: BuildingUnit[] = [
+  {
+    id: 'u-loja-aparecidinha-220',
+    title: 'Ampla loja comercial de 220 m² com grande fachada e estacionamento',
+    type: 'COMERCIAL',
+    buildingName: 'Loja Comercial Aparecidinha',
+    unitNumber: 'Loja 01',
+    floor: 'Térreo',
+    areaSqm: 220,
+    rentValue: 20735,
+    condoValue: 0,
+    iptuValue: 0,
+    adminFeeValue: 0,
+    status: 'DISPONIVEL',
+    bedrooms: 0,
+    bathrooms: 1,
+    parkingSpaces: 4,
+    furnished: false,
+    petFriendly: true,
+    description: 'Ampla loja comercial de 220 m² com grande fachada e estacionamento no Conjunto Residencial Aparecidinha em Sorocaba - SP. Excelente visibilidade, pé direito alto e piso de alta resistência.',
+    photos: [
+      'https://images.unsplash.com/photo-1582037928769-181f2644ecb7?w=1200',
+      'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200'
+    ],
+    photosCount: 2,
+    street: 'Av. Aparecidinha',
+    number: '1500',
+    neighborhood: 'Conjunto Residencial Aparecidinha',
+    city: 'Sorocaba',
+    state: 'SP',
+    zipCode: '18087-000',
+    latitude: -23.4795,
+    longitude: -47.3892,
+    address: 'Av. Aparecidinha, 1500 - Conjunto Residencial Aparecidinha, Sorocaba - SP',
+    ownerName: 'i7 Inteligência Imobiliária',
+    ownerEmail: 'admin@i7.com.br',
+    ownerPhone: '(15) 98814-5050',
+    createdAt: '2026-09-23T12:00:00.000Z'
+  }
+];
 
 export const INITIAL_USERS: GestaoUser[] = [
   {
@@ -350,7 +389,8 @@ export function getStoredData<T>(key: string, initialData: T): T {
         const bName = String(u.buildingName || '').toLowerCase();
         const uNum = String(u.unitNumber || '').toLowerCase();
         if (id === 'b3106524-17ad-4a9b-a6fa-e9fa93637c31' || id.startsWith('mock-') || id.startsWith('sample-')) return false;
-        if (title.includes('mangal') || bName.includes('mangal') || uNum.includes('31') || title.includes('apto 31')) return false;
+        if (title.includes('mangal gourmet') || bName.includes('mangal gourmet')) return false;
+        if (title.includes('residencial mangal') || bName.includes('residencial mangal')) return false;
         return true;
       });
       if (cleaned.length !== parsed.length) {

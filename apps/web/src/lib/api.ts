@@ -87,21 +87,23 @@ export function getAllLocalUnits(): BuildingUnit[] {
     }
 
     const uniqueMap = new Map<string, BuildingUnit>();
+    
+    // Adiciona as unidades locais cadastradas pelo usuário
     list.forEach(u => {
       if (u && u.id && !isDummyProperty(u)) {
         uniqueMap.set(u.id, u);
       }
     });
 
+    // Garante que os imóveis oficiais iniciais também estejam disponíveis caso o storage tenha sido limpo
+    INITIAL_UNITS.forEach(u => {
+      if (u && u.id && !uniqueMap.has(u.id) && !isDummyProperty(u)) {
+        uniqueMap.set(u.id, u);
+      }
+    });
+
     const cleanList = Array.from(uniqueMap.values());
-
-    // Se houver resquícios do exemplo antigo no celular, limpa do localStorage
-    try {
-      localStorage.setItem('i7_gestao_units', JSON.stringify(cleanList));
-      localStorage.setItem('units', JSON.stringify(cleanList));
-    } catch {}
-
-    return cleanList;
+    return cleanList.length > 0 ? cleanList : INITIAL_UNITS;
   } catch {
     return INITIAL_UNITS;
   }
@@ -111,7 +113,20 @@ export async function fetchProperties(_params?: Record<string, unknown>): Promis
   const result: PropertyDTO[] = [];
   const seenIds = new Set<string>();
 
-  // 1. Tenta carregar da rota de API de servidor compartilhada
+  // 1. Carrega todas as unidades reais locais e oficiais
+  const localUnits = getAllLocalUnits();
+  const approved = localUnits.filter(u => u && u.status !== 'REPROVADO' && u.status !== 'LOCADO' && !isDummyProperty(u));
+  approved.forEach((u, i) => {
+    if (!seenIds.has(u.id)) {
+      const dto = unitToPropertyDTO(u, i);
+      if (!isDummyProperty(dto)) {
+        seenIds.add(u.id);
+        result.push(dto);
+      }
+    }
+  });
+
+  // 2. Tenta carregar da rota de API de servidor compartilhada
   if (typeof window !== 'undefined') {
     try {
       const res = await fetch('/api/properties');
@@ -131,7 +146,7 @@ export async function fetchProperties(_params?: Record<string, unknown>): Promis
     }
   }
 
-  // 2. Busca do Supabase compartilhado oficial
+  // 3. Busca do Supabase compartilhado oficial
   try {
     const supabaseList = await getSharedProperties();
     if (supabaseList && supabaseList.length > 0) {
@@ -145,38 +160,6 @@ export async function fetchProperties(_params?: Record<string, unknown>): Promis
   } catch (err) {
     console.warn('Supabase properties fetch error:', err);
   }
-
-  // 3. Tenta carregar do IndexedDB seguro (contorna limite de 5MB do celular)
-  if (typeof window !== 'undefined') {
-    try {
-      const idbUnits = await getFromIndexedDB<BuildingUnit[]>('units');
-      if (Array.isArray(idbUnits)) {
-        idbUnits.forEach((u, i) => {
-          if (u && u.id && u.status !== 'REPROVADO' && u.status !== 'LOCADO' && !isDummyProperty(u) && !seenIds.has(u.id)) {
-            const dto = unitToPropertyDTO(u, i);
-            if (!isDummyProperty(dto)) {
-              seenIds.add(u.id);
-              result.push(dto);
-            }
-          }
-        });
-      }
-    } catch {}
-  }
-
-  // 4. Carrega todas as unidades cadastradas localmente
-  const localUnits = getAllLocalUnits();
-  // Permite qualquer unidade cadastrada pelo usuário (DISPONIVEL, PENDENTE_AVALIACAO ou cadastrada no painel)
-  const approved = localUnits.filter(u => u && u.status !== 'REPROVADO' && u.status !== 'LOCADO' && !isDummyProperty(u));
-  approved.forEach((u, i) => {
-    if (!seenIds.has(u.id)) {
-      const dto = unitToPropertyDTO(u, i);
-      if (!isDummyProperty(dto)) {
-        seenIds.add(u.id);
-        result.push(dto);
-      }
-    }
-  });
 
   return result;
 }

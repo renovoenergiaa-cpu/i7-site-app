@@ -6,27 +6,13 @@ export function isDummyProperty(p: PropertyDTO | any): boolean {
   const id = String(p.id || '').toLowerCase();
   const title = String(p.title || '').toLowerCase();
   const bName = String(p.buildingName || '').toLowerCase();
-  const uNum = String(p.unitNumber || '').toLowerCase();
-  const desc = String(p.description || '').toLowerCase();
-  const street = String(p.street || '').toLowerCase();
-  const addr = String(p.address || '').toLowerCase();
 
-  // Filtra dados de exemplo legado e mocks não cadastrados pelo usuário
+  // Apenas filtra o exemplo legado falso do Residencial Mangal Gourmet e mocks
   if (id === 'b3106524-17ad-4a9b-a6fa-e9fa93637c31') return true;
   if (id.startsWith('mock-') || id.startsWith('sample-')) return true;
-  if (
-    title.includes('exemplo fake') ||
-    title.includes('teste mock') ||
-    title.includes('mangal') ||
-    title.includes('apto 31') ||
-    bName.includes('mangal') ||
-    uNum.includes('apto 31') ||
-    desc.includes('mangal') ||
-    street.includes('mangal') ||
-    addr.includes('mangal')
-  ) {
-    return true;
-  }
+  if (title.includes('exemplo fake') || title.includes('teste mock')) return true;
+  if (title.includes('mangal gourmet') || bName.includes('mangal gourmet')) return true;
+  if (title.includes('residencial mangal') || bName.includes('residencial mangal')) return true;
   return false;
 }
 
