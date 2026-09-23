@@ -172,57 +172,88 @@ export async function fetchProperties(_params?: Record<string, unknown>): Promis
 
 export async function fetchPropertyById(id: string): Promise<PropertyDTO | null> {
   if (!id) return null;
-  const targetId = decodeURIComponent(id).trim().toLowerCase();
+  const targetId = decodeURIComponent(id).trim().toLowerCase().replace(/\/$/, '');
+  const cleanTargetId = targetId.replace(/^u-/, '');
 
-  // 1. Procura primeiro nas unidades locais (localStorage síncrono)
+  // 1. Procura imediata nas unidades oficiais (INITIAL_UNITS) para resposta ultra-rápida sem falha
+  const initialMatch = INITIAL_UNITS.find((u, i) => {
+    if (!u || isDummyProperty(u)) return false;
+    const uId = String(u.id || '').toLowerCase();
+    const cleanUId = uId.replace(/^u-/, '');
+    return uId === targetId || cleanUId === cleanTargetId || uId.includes(cleanTargetId) || targetId.includes(cleanUId);
+  });
+  if (initialMatch) {
+    const idx = INITIAL_UNITS.indexOf(initialMatch);
+    return unitToPropertyDTO(initialMatch, idx >= 0 ? idx : 0);
+  }
+
+  // 2. Procura nas unidades locais (localStorage síncrono)
   const localUnits = getAllLocalUnits();
   let foundLocal = localUnits.find(u => {
+    if (!u || isDummyProperty(u)) return false;
     const uId = String(u.id || '').toLowerCase();
+    const cleanUId = uId.replace(/^u-/, '');
     const uTitle = String(u.title || '').toLowerCase();
     const uUnit = String(u.unitNumber || '').toLowerCase();
     const uBuilding = String(u.buildingName || '').toLowerCase();
     const combined = `${uBuilding} - ${uUnit}`.toLowerCase();
 
-    return uId === targetId || uTitle === targetId || uUnit === targetId || combined === targetId || targetId.includes(uId) || uId.includes(targetId);
+    return (
+      uId === targetId ||
+      cleanUId === cleanTargetId ||
+      uId.includes(cleanTargetId) ||
+      targetId.includes(cleanUId) ||
+      uTitle === targetId ||
+      uUnit === targetId ||
+      combined === targetId
+    );
   });
-
-  // 2. Se não encontrou no localStorage síncrono, busca no IndexedDB (que armazena fotos e dados sem limite de 5MB)
-  if (!foundLocal && typeof window !== 'undefined') {
-    try {
-      const idbUnits = await getFromIndexedDB<BuildingUnit[]>('units');
-      if (Array.isArray(idbUnits)) {
-        foundLocal = idbUnits.find(u => {
-          const uId = String(u.id || '').toLowerCase();
-          const uTitle = String(u.title || '').toLowerCase();
-          const uUnit = String(u.unitNumber || '').toLowerCase();
-          const uBuilding = String(u.buildingName || '').toLowerCase();
-          const combined = `${uBuilding} - ${uUnit}`.toLowerCase();
-          return uId === targetId || uTitle === targetId || uUnit === targetId || combined === targetId || targetId.includes(uId) || uId.includes(targetId);
-        });
-      }
-    } catch {
-      // continua
-    }
-  }
 
   if (foundLocal) {
     const idx = (localUnits || []).indexOf(foundLocal);
     return unitToPropertyDTO(foundLocal, idx >= 0 ? idx : 0);
   }
 
-  // 3. Procura na API de servidor compartilhada
+  // 3. Se não encontrou no localStorage síncrono, busca no IndexedDB (sem limite de 5MB)
   if (typeof window !== 'undefined') {
     try {
-      const res = await fetch('/api/properties');
+      const idbUnits = await getFromIndexedDB<BuildingUnit[]>('units');
+      if (Array.isArray(idbUnits)) {
+        foundLocal = idbUnits.find(u => {
+          if (!u || isDummyProperty(u)) return false;
+          const uId = String(u.id || '').toLowerCase();
+          const cleanUId = uId.replace(/^u-/, '');
+          return uId === targetId || cleanUId === cleanTargetId || uId.includes(cleanTargetId) || targetId.includes(cleanUId);
+        });
+        if (foundLocal) {
+          return unitToPropertyDTO(foundLocal, 0);
+        }
+      }
+    } catch {
+      // continua
+    }
+  }
+
+  // 4. Procura na API de servidor compartilhada com cache-busting
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch(`/api/properties?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
       if (res.ok) {
         const data = await res.json();
         if (data && Array.isArray(data.properties)) {
-          const found = data.properties.find((p: PropertyDTO) => 
-            String(p.id || '').toLowerCase() === targetId ||
-            String(p.title || '').toLowerCase() === targetId ||
-            targetId.includes(String(p.id || '').toLowerCase())
-          );
-          if (found && !isDummyProperty(found)) {
+          const found = data.properties.find((p: PropertyDTO) => {
+            if (!p || isDummyProperty(p)) return false;
+            const pId = String(p.id || '').toLowerCase();
+            const cleanPId = pId.replace(/^u-/, '');
+            return pId === targetId || cleanPId === cleanTargetId || pId.includes(cleanTargetId) || targetId.includes(cleanPId);
+          });
+          if (found) {
             return found;
           }
         }
@@ -232,7 +263,7 @@ export async function fetchPropertyById(id: string): Promise<PropertyDTO | null>
     }
   }
 
-  // 4. Procura no Supabase
+  // 5. Procura no Supabase
   try {
     const sp = await getSharedProperty(targetId);
     if (sp && !isDummyProperty(sp)) {

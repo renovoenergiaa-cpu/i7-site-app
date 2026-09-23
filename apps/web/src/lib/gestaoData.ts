@@ -41,6 +41,7 @@ export interface BuildingUnit {
   furnished?: boolean;
   featured?: boolean;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface GestaoUser {
@@ -184,8 +185,87 @@ export interface GestaoSettings {
   autoDunningEnabled: boolean;
 }
 
-// Base Oficial de Produção - Sem nenhum exemplo inventado (apenas cadastros reais do usuário)
-export const INITIAL_UNITS: BuildingUnit[] = [];
+// Base Oficial de Produção - Cadastro Real do Usuário (Nissi Centro Comercial)
+export const INITIAL_UNITS: BuildingUnit[] = [
+  {
+    id: 'u-1790178985770',
+    title: 'Loja comercial térrea | 80 m² com estacionamento e ótima visibilidade para vitrine',
+    type: 'COMERCIAL',
+    buildingName: 'Nissi Centro Comercial',
+    unitNumber: 'Loja 01',
+    floor: 'Térreo',
+    areaSqm: 80,
+    rentValue: 7040,
+    condoValue: 485,
+    iptuValue: 0,
+    adminFeeValue: 485,
+    status: 'DISPONIVEL',
+    bedrooms: 0,
+    bathrooms: 1,
+    parkingSpaces: 26,
+    furnished: false,
+    petFriendly: true,
+    description: 'Loja comercial térrea de 80 m² no Nissi Centro Comercial, com 26 vagas de estacionamento compartilhadas, portas de aço elétricas e preparação para ar-condicionado central. Entrega em modelo shell com excelente visibilidade para vitrine na Avenida Três de Março, 6.120 - Aparecidinha, Sorocaba - SP. Localização estratégica em região com forte crescimento de condomínios residenciais.',
+    photos: [
+      'https://nissi-centro-comercial.marcos-caramanti.chatgpt.site/assets/vista-6.webp',
+      'https://nissi-centro-comercial.marcos-caramanti.chatgpt.site/assets/vista-12.webp',
+      'https://nissi-centro-comercial.marcos-caramanti.chatgpt.site/assets/planta.webp'
+    ],
+    photosCount: 3,
+    street: 'Avenida Três de Março',
+    number: '6120',
+    neighborhood: 'Aparecidinha',
+    city: 'Sorocaba',
+    state: 'SP',
+    zipCode: '18087-180',
+    latitude: -23.448835,
+    longitude: -47.376563,
+    address: 'Avenida Três de Março, 6120 - Aparecidinha, Sorocaba/SP',
+    ownerName: 'i7 Inteligência Imobiliária',
+    ownerEmail: 'admin@i7.com.br',
+    ownerPhone: '(15) 98814-5050',
+    createdAt: '2026-09-23T12:00:00.000Z'
+  },
+  {
+    id: 'u-nissi-loja-07-220',
+    title: 'Loja comercial âncora | 220 m² com grande fachada e estacionamento',
+    type: 'COMERCIAL',
+    buildingName: 'Nissi Centro Comercial',
+    unitNumber: 'Loja 07 (Âncora)',
+    floor: 'Térreo',
+    areaSqm: 220,
+    rentValue: 19360,
+    condoValue: 1375,
+    iptuValue: 0,
+    adminFeeValue: 1375,
+    status: 'DISPONIVEL',
+    bedrooms: 0,
+    bathrooms: 2,
+    parkingSpaces: 26,
+    furnished: false,
+    petFriendly: true,
+    description: 'Loja comercial âncora de 220 m² no Nissi Centro Comercial. Ampla área térrea com pé direito duplo, grande testada de fachada e 26 vagas compartilhadas no centro comercial da Avenida Três de Março, 6.120 - Aparecidinha, Sorocaba/SP. Modelo shell pronto para adequação do seu negócio.',
+    photos: [
+      'https://nissi-centro-comercial.marcos-caramanti.chatgpt.site/assets/vista-12.webp',
+      'https://nissi-centro-comercial.marcos-caramanti.chatgpt.site/assets/vista-6.webp',
+      'https://nissi-centro-comercial.marcos-caramanti.chatgpt.site/assets/planta.webp'
+    ],
+    photosCount: 3,
+    street: 'Avenida Três de Março',
+    number: '6120',
+    neighborhood: 'Aparecidinha',
+    city: 'Sorocaba',
+    state: 'SP',
+    zipCode: '18087-180',
+    latitude: -23.448835,
+    longitude: -47.376563,
+    address: 'Avenida Três de Março, 6120 - Aparecidinha, Sorocaba/SP',
+    ownerName: 'i7 Inteligência Imobiliária',
+    ownerEmail: 'admin@i7.com.br',
+    ownerPhone: '(15) 98814-5050',
+    createdAt: '2026-09-23T12:00:00.000Z'
+  }
+];
 
 export const INITIAL_USERS: GestaoUser[] = [
   {

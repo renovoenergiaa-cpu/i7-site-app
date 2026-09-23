@@ -42,19 +42,19 @@ export default function PropertyDetailPage() {
       setClientPhone(session.user.phone || '');
     }
 
-    let propertyId = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
-    if (!propertyId && typeof window !== 'undefined') {
+    let rawId = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
+    if (!rawId && typeof window !== 'undefined') {
       const parts = window.location.pathname.split('/').filter(Boolean);
-      propertyId = parts[parts.length - 1];
+      rawId = parts[parts.length - 1];
     }
+    const propertyId = rawId ? decodeURIComponent(rawId).trim().replace(/\/$/, '') : '';
 
     if (propertyId) {
       const loadProperty = async () => {
         try {
           let data = await fetchPropertyById(propertyId);
           if (!data) {
-            // Aguarda 300ms caso o storage/IndexedDB da outra aba esteja sincronizando
-            await new Promise(r => setTimeout(r, 300));
+            await new Promise(r => setTimeout(r, 400));
             data = await fetchPropertyById(propertyId);
           }
           setProperty(data);
@@ -79,18 +79,35 @@ export default function PropertyDetailPage() {
   }
 
   if (!property) {
+    let rawId = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
+    const targetId = rawId ? decodeURIComponent(rawId).trim().replace(/\/$/, '') : '';
+
     return (
       <div className="max-w-7xl mx-auto px-4 py-24 text-center space-y-4">
         <h2 className="text-2xl font-black text-text-primary">Imóvel não encontrado</h2>
         <p className="text-sm text-text-secondary max-w-md mx-auto">
-          Este imóvel pode já ter sido locado, vendido ou desativado da nossa plataforma.
+          Este imóvel pode estar sendo atualizado, reservado ou com o anúncio em sincronização.
         </p>
-        <Link
-          href="/imoveis"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-lime text-white font-bold text-sm shadow hover:bg-brand-lime-hover transition-all"
-        >
-          Ver outros imóveis disponíveis
-        </Link>
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <button
+            onClick={() => {
+              setLoading(true);
+              fetchPropertyById(targetId).then(d => {
+                setProperty(d);
+                setLoading(false);
+              });
+            }}
+            className="px-5 py-2.5 rounded-xl border border-border bg-surface-hover hover:bg-border text-text-primary text-xs font-bold transition-all"
+          >
+            Tentar carregar novamente
+          </button>
+          <Link
+            href="/imoveis"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-brand-lime text-white font-bold text-xs shadow hover:bg-brand-lime-hover transition-all"
+          >
+            Ver outros imóveis
+          </Link>
+        </div>
       </div>
     );
   }

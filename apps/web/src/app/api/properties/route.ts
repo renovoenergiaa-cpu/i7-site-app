@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { PropertyDTO } from '@i7/types';
 import { isDummyProperty } from '@/lib/supabaseProperties';
+import { INITIAL_UNITS } from '@/lib/gestaoData';
+import { unitToPropertyDTO } from '@/lib/api';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -42,6 +44,14 @@ export async function GET() {
   const fromFile = loadPropertiesFromFile();
   const mergedMap = new Map<string, PropertyDTO>();
   
+  // 1. Sempre inclui os imóveis oficiais cadastrados (ex: Nissi Centro Comercial)
+  INITIAL_UNITS.forEach((u, i) => {
+    if (u && u.id && !isDummyProperty(u)) {
+      mergedMap.set(u.id, unitToPropertyDTO(u, i));
+    }
+  });
+
+  // 2. Inclui os imóveis sincronizados dinamicamente
   [...serverPropertiesStore, ...fromFile].forEach(p => {
     if (p && p.id && !isDummyProperty(p)) {
       mergedMap.set(p.id, p);
