@@ -28,6 +28,7 @@ import {
   Building2,
   Printer
 } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 import { 
   GestaoContract, 
   INITIAL_CONTRACTS, 
@@ -697,7 +698,7 @@ export default function ContratosAdminPage() {
                       rel="noreferrer"
                       className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
                     >
-                      <MessageSquare className="w-3.5 h-3.5" />
+                      <WhatsAppIcon className="w-3.5 h-3.5 fill-white" />
                       <span>WhatsApp</span>
                     </a>
 
@@ -768,7 +769,7 @@ export default function ContratosAdminPage() {
                 rel="noreferrer"
                 className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
               >
-                <MessageSquare className="w-4 h-4" />
+                <WhatsAppIcon className="w-4 h-4 fill-white" />
                 <span>Enviar Boas-Vindas & Contrato no WhatsApp</span>
               </a>
 

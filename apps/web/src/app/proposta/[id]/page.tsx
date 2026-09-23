@@ -22,6 +22,7 @@ import {
   MessageSquare,
   Lock
 } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 import { 
   RentalProposal, 
   INITIAL_PROPOSALS, 
@@ -226,7 +227,7 @@ export default function PropostaDigitalPage() {
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-md transition-all"
               >
-                <MessageSquare className="w-4 h-4" />
+                <WhatsAppIcon className="w-4 h-4 fill-white" />
                 <span>Acompanhar com o Corretor no WhatsApp</span>
               </a>
             </div>

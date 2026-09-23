@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { fetchPropertyById } from '@/lib/api';
 import { PropertyDTO } from '@i7/types';
 import { MapPin, Calendar, Send, MessageSquare, ShieldCheck, Heart, Sparkles, Check, ChevronRight, X, User, Lock, Phone } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 import { getCurrentSession } from '@/lib/auth';
 import { ScheduledVisit, INITIAL_VISITS, getStoredData, saveStoredData, logAuditEvent } from '@/lib/gestaoData';
 import { PropertyMap } from '@/components/PropertyMap';
@@ -195,7 +196,7 @@ export default function PropertyDetailPage() {
                 rel="noopener noreferrer"
                 className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-2 shadow transition-all shrink-0"
               >
-                <MessageSquare className="w-4 h-4" />
+                <WhatsAppIcon className="w-4 h-4 fill-white" />
                 <span>Conversar no WhatsApp</span>
               </a>
             )}
@@ -226,7 +227,7 @@ export default function PropertyDetailPage() {
             rel="noopener noreferrer"
             className="px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 border border-emerald-500 text-sm font-bold text-white flex items-center gap-2 transition-all shadow-md hover:scale-[1.02]"
           >
-            <MessageSquare className="w-4 h-4 text-white" /> Conversar no WhatsApp
+            <WhatsAppIcon className="w-4 h-4 fill-white" /> Conversar no WhatsApp
           </a>
         </div>
       </div>
@@ -400,7 +401,7 @@ export default function PropertyDetailPage() {
                 rel="noopener noreferrer"
                 className="w-full py-3.5 px-4 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 transition-all shadow-md hover:scale-[1.01]"
               >
-                <MessageSquare className="w-5 h-5" /> Conversar no WhatsApp
+                <WhatsAppIcon className="w-5 h-5 fill-white" /> Conversar no WhatsApp
               </a>
             </div>
 

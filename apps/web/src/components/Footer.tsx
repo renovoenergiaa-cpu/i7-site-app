@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { ShieldCheck, Smartphone, Lock, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Lock, Sparkles, CheckCircle2 } from 'lucide-react';
+import { WhatsAppIcon } from './WhatsAppIcon';
 
 export const Footer: React.FC = () => {
   return (
@@ -32,7 +33,7 @@ export const Footer: React.FC = () => {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all text-xs font-bold w-fit"
               >
-                <Smartphone className="w-3.5 h-3.5" />
+                <WhatsAppIcon className="w-3.5 h-3.5 fill-current" />
                 <span>WhatsApp: (15) 98814-5050</span>
               </a>
             </div>

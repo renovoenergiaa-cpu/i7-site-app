@@ -16,6 +16,7 @@ import {
   RefreshCw,
   ArrowRight
 } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -111,7 +112,7 @@ export default function ContactPage() {
                 className="flex items-start gap-4 p-5 bg-white rounded-2xl border border-border shadow-sm hover:border-emerald-500 transition-all group"
               >
                 <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shrink-0 group-hover:scale-105 transition-transform">
-                  <Phone className="w-5 h-5" />
+                  <WhatsAppIcon className="w-5 h-5 fill-emerald-600" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
@@ -278,7 +279,7 @@ export default function ContactPage() {
                       type="submit"
                       className="w-full py-4 rounded-xl font-black text-xs bg-emerald-600 text-white shadow-md hover:bg-emerald-700 transition-all flex justify-center items-center gap-2 cursor-pointer"
                     >
-                      <Phone className="w-4 h-4" /> 
+                      <WhatsAppIcon className="w-4 h-4 fill-white" /> 
                       <span>Enviar Mensagem pelo WhatsApp</span>
                     </button>
                   </div>

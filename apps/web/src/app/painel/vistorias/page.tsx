@@ -29,6 +29,7 @@ import {
   ChevronRight,
   Sparkles
 } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 import { 
   InspectionReport, 
   INITIAL_INSPECTIONS, 
@@ -516,7 +517,7 @@ export default function VistoriasPage() {
                     className="py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
                     title="Enviar laudo de vistoria no WhatsApp do inquilino"
                   >
-                    <MessageSquare className="w-3.5 h-3.5" />
+                    <WhatsAppIcon className="w-3.5 h-3.5 fill-white" />
                     <span>WhatsApp</span>
                   </button>
 
@@ -695,7 +696,7 @@ export default function VistoriasPage() {
                 onClick={() => handleOpenWhatsApp(selectedReport)}
                 className="py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black flex items-center gap-2 transition-all cursor-pointer shadow-sm"
               >
-                <MessageSquare className="w-4 h-4" />
+                <WhatsAppIcon className="w-4 h-4 fill-white" />
                 <span>Enviar Notificação no WhatsApp</span>
               </button>
 

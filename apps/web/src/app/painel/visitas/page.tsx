@@ -21,6 +21,7 @@ import {
   ArrowRight,
   FileText
 } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 import { 
   ScheduledVisit, 
   INITIAL_VISITS, 
@@ -381,7 +382,7 @@ export default function PainelVisitasPage() {
                     rel="noopener noreferrer"
                     className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow flex items-center gap-1.5 transition-all"
                   >
-                    <MessageSquare className="w-4 h-4" />
+                    <WhatsAppIcon className="w-4 h-4 fill-white" />
                     <span>WhatsApp</span>
                   </a>
 
@@ -496,7 +497,7 @@ export default function PainelVisitasPage() {
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
-                <MessageSquare className="w-4 h-4" />
+                <WhatsAppIcon className="w-4 h-4 fill-white" />
                 <span>Disparar Proposta no WhatsApp do Cliente</span>
               </a>
             </div>
