@@ -175,19 +175,7 @@ export async function fetchPropertyById(id: string): Promise<PropertyDTO | null>
   const targetId = decodeURIComponent(id).trim().toLowerCase().replace(/\/$/, '');
   const cleanTargetId = targetId.replace(/^u-/, '');
 
-  // 1. Procura imediata nas unidades oficiais (INITIAL_UNITS) para resposta ultra-rápida sem falha
-  const initialMatch = INITIAL_UNITS.find((u, i) => {
-    if (!u || isDummyProperty(u)) return false;
-    const uId = String(u.id || '').toLowerCase();
-    const cleanUId = uId.replace(/^u-/, '');
-    return uId === targetId || cleanUId === cleanTargetId || uId.includes(cleanTargetId) || targetId.includes(cleanUId);
-  });
-  if (initialMatch) {
-    const idx = INITIAL_UNITS.indexOf(initialMatch);
-    return unitToPropertyDTO(initialMatch, idx >= 0 ? idx : 0);
-  }
-
-  // 2. Procura nas unidades locais (localStorage síncrono)
+  // 1. Procura primeiro nas unidades locais do CRM (localStorage síncrono - reflete edições do painel imediatamente)
   const localUnits = getAllLocalUnits();
   let foundLocal = localUnits.find(u => {
     if (!u || isDummyProperty(u)) return false;
@@ -214,7 +202,7 @@ export async function fetchPropertyById(id: string): Promise<PropertyDTO | null>
     return unitToPropertyDTO(foundLocal, idx >= 0 ? idx : 0);
   }
 
-  // 3. Se não encontrou no localStorage síncrono, busca no IndexedDB (sem limite de 5MB)
+  // 2. Se não encontrou no localStorage síncrono, busca no IndexedDB do CRM (sem limite de 5MB)
   if (typeof window !== 'undefined') {
     try {
       const idbUnits = await getFromIndexedDB<BuildingUnit[]>('units');
@@ -232,6 +220,18 @@ export async function fetchPropertyById(id: string): Promise<PropertyDTO | null>
     } catch {
       // continua
     }
+  }
+
+  // 3. Procura nas unidades oficiais padrão (INITIAL_UNITS)
+  const initialMatch = INITIAL_UNITS.find((u, i) => {
+    if (!u || isDummyProperty(u)) return false;
+    const uId = String(u.id || '').toLowerCase();
+    const cleanUId = uId.replace(/^u-/, '');
+    return uId === targetId || cleanUId === cleanTargetId || uId.includes(cleanTargetId) || targetId.includes(cleanUId);
+  });
+  if (initialMatch) {
+    const idx = INITIAL_UNITS.indexOf(initialMatch);
+    return unitToPropertyDTO(initialMatch, idx >= 0 ? idx : 0);
   }
 
   // 4. Procura na API de servidor compartilhada com cache-busting
