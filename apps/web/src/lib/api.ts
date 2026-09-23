@@ -44,6 +44,7 @@ export function unitToPropertyDTO(u: BuildingUnit, index: number = 0): PropertyD
     latitude: exactLat,
     longitude: exactLng,
     rentPrice: rentVal,
+    salePrice: rentVal > 50000 ? rentVal : (rentVal * 180),
     condoFee: condoVal,
     iptuFee: adminOrIptuVal,
     serviceFee: 0,
@@ -69,18 +70,38 @@ export function getAllLocalUnits(): BuildingUnit[] {
   if (typeof window === 'undefined') return INITIAL_UNITS;
   try {
     const rawGestao = localStorage.getItem('i7_gestao_units');
-    if (rawGestao) {
-      const parsed = JSON.parse(rawGestao);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
     const rawPlain = localStorage.getItem('units');
-    if (rawPlain) {
-      const parsed = JSON.parse(rawPlain);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    const list: BuildingUnit[] = [];
+
+    if (rawGestao) {
+      try {
+        const parsed = JSON.parse(rawGestao);
+        if (Array.isArray(parsed)) list.push(...parsed);
+      } catch {}
     }
-    const stored = getStoredData<BuildingUnit[]>('units', INITIAL_UNITS);
-    if (Array.isArray(stored) && stored.length > 0) return stored;
-    return INITIAL_UNITS;
+    if (rawPlain) {
+      try {
+        const parsed = JSON.parse(rawPlain);
+        if (Array.isArray(parsed)) list.push(...parsed);
+      } catch {}
+    }
+
+    const uniqueMap = new Map<string, BuildingUnit>();
+    list.forEach(u => {
+      if (u && u.id && !isDummyProperty(u)) {
+        uniqueMap.set(u.id, u);
+      }
+    });
+
+    const cleanList = Array.from(uniqueMap.values());
+
+    // Se houver resquícios do exemplo antigo no celular, limpa do localStorage
+    try {
+      localStorage.setItem('i7_gestao_units', JSON.stringify(cleanList));
+      localStorage.setItem('units', JSON.stringify(cleanList));
+    } catch {}
+
+    return cleanList;
   } catch {
     return INITIAL_UNITS;
   }
@@ -125,13 +146,35 @@ export async function fetchProperties(_params?: Record<string, unknown>): Promis
     console.warn('Supabase properties fetch error:', err);
   }
 
-  // 3. Carrega todas as unidades cadastradas localmente e de INITIAL_UNITS
+  // 3. Tenta carregar do IndexedDB seguro (contorna limite de 5MB do celular)
+  if (typeof window !== 'undefined') {
+    try {
+      const idbUnits = await getFromIndexedDB<BuildingUnit[]>('units');
+      if (Array.isArray(idbUnits)) {
+        idbUnits.forEach((u, i) => {
+          if (u && u.id && u.status !== 'REPROVADO' && u.status !== 'LOCADO' && !isDummyProperty(u) && !seenIds.has(u.id)) {
+            const dto = unitToPropertyDTO(u, i);
+            if (!isDummyProperty(dto)) {
+              seenIds.add(u.id);
+              result.push(dto);
+            }
+          }
+        });
+      }
+    } catch {}
+  }
+
+  // 4. Carrega todas as unidades cadastradas localmente
   const localUnits = getAllLocalUnits();
-  const approved = localUnits.filter(u => u.status === 'DISPONIVEL' || (u.status as any) === 'PUBLISHED');
+  // Permite qualquer unidade cadastrada pelo usuário (DISPONIVEL, PENDENTE_AVALIACAO ou cadastrada no painel)
+  const approved = localUnits.filter(u => u && u.status !== 'REPROVADO' && u.status !== 'LOCADO' && !isDummyProperty(u));
   approved.forEach((u, i) => {
     if (!seenIds.has(u.id)) {
-      seenIds.add(u.id);
-      result.push(unitToPropertyDTO(u, i));
+      const dto = unitToPropertyDTO(u, i);
+      if (!isDummyProperty(dto)) {
+        seenIds.add(u.id);
+        result.push(dto);
+      }
     }
   });
 

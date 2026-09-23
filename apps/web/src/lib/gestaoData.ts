@@ -342,8 +342,17 @@ export function getStoredData<T>(key: string, initialData: T): T {
   try {
     let parsed = JSON.parse(item);
     if (Array.isArray(parsed)) {
-      // Limpa qualquer dado residual do exemplo antigo 'b3106524-17ad-4a9b-a6fa-e9fa93637c31' (Apto 31)
-      const cleaned = parsed.filter((u: any) => u.id !== 'b3106524-17ad-4a9b-a6fa-e9fa93637c31');
+      // Limpa qualquer dado residual do exemplo antigo 'b3106524-17ad-4a9b-a6fa-e9fa93637c31' (Mangal Gourmet / Apto 31)
+      const cleaned = parsed.filter((u: any) => {
+        if (!u) return false;
+        const id = String(u.id || '').toLowerCase();
+        const title = String(u.title || '').toLowerCase();
+        const bName = String(u.buildingName || '').toLowerCase();
+        const uNum = String(u.unitNumber || '').toLowerCase();
+        if (id === 'b3106524-17ad-4a9b-a6fa-e9fa93637c31' || id.startsWith('mock-') || id.startsWith('sample-')) return false;
+        if (title.includes('mangal') || bName.includes('mangal') || uNum.includes('31') || title.includes('apto 31')) return false;
+        return true;
+      });
       if (cleaned.length !== parsed.length) {
         localStorage.setItem(`i7_gestao_${key}`, JSON.stringify(cleaned));
         localStorage.setItem(key, JSON.stringify(cleaned));

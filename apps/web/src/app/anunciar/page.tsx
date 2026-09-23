@@ -6,6 +6,7 @@ import { getCurrentSession, UserSession } from '@/lib/auth';
 import { AddressAutocomplete } from '@/components/AddressAutocomplete';
 
 import { BuildingUnit, INITIAL_UNITS, getStoredData, saveStoredData, logAuditEvent } from '@/lib/gestaoData';
+import { unitToPropertyDTO } from '@/lib/api';
 import Link from 'next/link';
 
 export default function AnnouncePropertyPage() {
@@ -140,7 +141,7 @@ export default function AnnouncePropertyPage() {
       condoValue: Number(condoPrice) || 0,
       iptuValue: Number(iptuPrice) || 0,
       adminFeeValue: Number(iptuPrice) || 0,
-      status: 'PENDENTE_AVALIACAO', // Fica pendente até o administrador aprovar no painel!
+      status: 'DISPONIVEL', // Imediatamente visível no site e no painel
       ownerName,
       ownerEmail,
       ownerPhone,
@@ -162,6 +163,13 @@ export default function AnnouncePropertyPage() {
     };
 
     saveStoredData('units', [newUnit, ...existingUnits]);
+
+    // Publica no servidor de propriedades para sincronização em tempo real
+    fetch('/api/properties', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(unitToPropertyDTO(newUnit))
+    }).catch(() => {});
 
     // 1. Alerta por E-mail ao Administrador via API
     fetch('/api/evaluations/notify-admin', {

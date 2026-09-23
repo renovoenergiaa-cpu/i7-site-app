@@ -60,12 +60,13 @@ function SearchPropertiesContent() {
       const pTypeNorm = (p.type === 'APARTMENT' || (p.type as any) === 'APARTAMENTO') ? 'APARTMENT' : p.type;
       if (pTypeNorm !== selectedType) return false;
     }
-    if (priceToCompare > maxPrice) return false;
-    if (bedrooms && p.bedrooms < bedrooms) return false;
-    if (bathrooms && p.bathrooms < bathrooms) return false;
+    const isSliderAtMax = searchMode === 'buy' ? maxPrice >= 5000000 : maxPrice >= 50000;
+    if (!isSliderAtMax && priceToCompare > maxPrice) return false;
+    if (bedrooms !== null && bedrooms > 0 && p.bedrooms < bedrooms) return false;
+    if (bathrooms !== null && bathrooms > 0 && p.bathrooms < bathrooms) return false;
     
     const propParking = p.parkingSpots ?? 0;
-    if (parking && propParking < parking) return false;
+    if (parking !== null && parking > 0 && propParking < parking) return false;
     
     if (petFriendly && !p.petFriendly) return false;
     if (furnished && !p.furnished) return false;
@@ -149,7 +150,7 @@ function SearchPropertiesContent() {
                 Comprar
              </button>
              <button 
-                onClick={() => { setSearchMode('rent'); setMaxPrice(15000); }}
+                onClick={() => { setSearchMode('rent'); setMaxPrice(50000); }}
                 className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${searchMode === 'rent' ? 'bg-white text-brand-lime shadow-sm' : 'text-text-secondary'}`}
              >
                 Alugar
@@ -181,7 +182,7 @@ function SearchPropertiesContent() {
             <input 
               type="range" 
               min={searchMode === 'buy' ? 100000 : 1500} 
-              max={searchMode === 'buy' ? 5000000 : 25000} 
+              max={searchMode === 'buy' ? 5000000 : 50000} 
               step={searchMode === 'buy' ? 50000 : 500}
               value={maxPrice}
               onChange={(e) => setMaxPrice(Number(e.target.value))}

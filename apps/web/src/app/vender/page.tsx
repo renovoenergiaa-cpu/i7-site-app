@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Home, User, CheckCircle2, DollarSign, ShieldCheck } from 'lucide-react';
 import { AddressAutocomplete } from '@/components/AddressAutocomplete';
 import { BuildingUnit, INITIAL_UNITS, getStoredData, saveStoredData, logAuditEvent } from '@/lib/gestaoData';
+import { unitToPropertyDTO } from '@/lib/api';
 import Link from 'next/link';
 
 export default function SellPropertyPage() {
@@ -39,10 +40,10 @@ export default function SellPropertyPage() {
       condoValue: Number(condoValue) || 0,
       iptuValue: Number(iptuValue) || 0,
       adminFeeValue: Number(iptuValue) || 0,
-      status: 'PENDENTE_AVALIACAO',
+      status: 'DISPONIVEL',
       ownerName: ownerName || 'Proprietário Interessado',
       ownerEmail: ownerEmail || 'contato@anunciante.com.br',
-      ownerPhone: ownerPhone || '(15) 99999-9999',
+      ownerPhone: ownerPhone || '(15) 98814-5050',
       bedrooms: bedrooms !== '' ? (Number(bedrooms) || 0) : 0,
       bathrooms: 2,
       parkingSpaces: 1,
@@ -59,6 +60,13 @@ export default function SellPropertyPage() {
     };
 
     saveStoredData('units', [newUnit, ...existingUnits]);
+
+    // Publica no servidor de propriedades para sincronização em tempo real
+    fetch('/api/properties', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(unitToPropertyDTO(newUnit))
+    }).catch(() => {});
 
     // Alerta de e-mail ao Administrador
     fetch('/api/evaluations/notify-admin', {
