@@ -565,6 +565,14 @@ export default function UnidadesPage() {
                         <Link
                           href={`/imoveis/${unit.id}`}
                           target="_blank"
+                          onClick={() => {
+                            saveStoredData('units', units);
+                            fetch('/api/properties', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify(unitToPropertyDTO(unit))
+                            }).catch(() => {});
+                          }}
                           className="flex-1 py-2 px-2.5 rounded-xl bg-surface border border-border hover:border-brand-lime text-text-primary font-bold text-xs flex items-center justify-center gap-1.5 transition-all text-center"
                           title="Ver anúncio público no site"
                         >

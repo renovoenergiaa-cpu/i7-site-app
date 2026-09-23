@@ -184,48 +184,8 @@ export interface GestaoSettings {
   autoDunningEnabled: boolean;
 }
 
-// Initial Seed Data - Base Oficial de Produção com Imóvel Ativo
-export const INITIAL_UNITS: BuildingUnit[] = [
-  {
-    id: 'b3106524-17ad-4a9b-a6fa-e9fa93637c31',
-    title: 'Apto 31 - Residencial Mangal Gourmet',
-    type: 'APARTAMENTO',
-    buildingName: 'Residencial Mangal Gourmet',
-    unitNumber: 'Apto 31',
-    floor: '3º Andar',
-    areaSqm: 95,
-    rentValue: 3500,
-    condoValue: 500,
-    iptuValue: 150,
-    adminFeeValue: 150,
-    status: 'DISPONIVEL',
-    bedrooms: 1,
-    bathrooms: 1,
-    parkingSpaces: 1,
-    furnished: false,
-    petFriendly: true,
-    description: 'Imóvel avaliado e aprovado pela i7 em Residencial Mangal Gourmet. Excelente estado de conservação, com 95m², ambientes amplos e bem ventilados, e infraestrutura completa em Sorocaba.',
-    photos: [
-      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200',
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200',
-      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200'
-    ],
-    photosCount: 3,
-    street: 'Rua Residencial Mangal Gourmet',
-    number: '100',
-    neighborhood: 'Vila Hortência',
-    city: 'Sorocaba',
-    state: 'SP',
-    zipCode: '18020-000',
-    latitude: -23.5152,
-    longitude: -47.4526,
-    address: 'R. Residencial Mangal Gourmet, 100 - Vila Hortência, Sorocaba - SP',
-    ownerName: 'i7 Inteligência Imobiliária',
-    ownerEmail: 'admin@i7.com.br',
-    ownerPhone: '(15) 3090-4000',
-    createdAt: '2026-09-13T00:35:09.846Z'
-  }
-];
+// Initial Seed Data - Base Oficial Limpa de Produção
+export const INITIAL_UNITS: BuildingUnit[] = [];
 
 export const INITIAL_USERS: GestaoUser[] = [
   {
@@ -280,6 +240,96 @@ export const INITIAL_SETTINGS: GestaoSettings = {
   autoDunningEnabled: true
 };
 
+// Helper para compressão de imagens via Canvas no navegador (evita estouro de 5MB do localStorage)
+export function compressImage(file: File, maxWidth = 1200, quality = 0.72): Promise<string> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || !file || !file.type || !file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve((e.target?.result as string) || '');
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          } else {
+            resolve(event.target?.result as string);
+          }
+        } catch {
+          resolve(event.target?.result as string);
+        }
+      };
+      img.onerror = () => resolve(event.target?.result as string);
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Storage assíncrono IndexedDB para contornar qualquer limite de 5MB
+const DB_NAME = 'i7_property_db';
+const STORE_NAME = 'store';
+
+function openIndexedDB(): Promise<IDBDatabase | null> {
+  if (typeof window === 'undefined' || !window.indexedDB) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    try {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => {
+        req.result.createObjectStore(STORE_NAME);
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+export async function saveToIndexedDB(key: string, data: any): Promise<void> {
+  try {
+    const db = await openIndexedDB();
+    if (!db) return;
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put(data, key);
+  } catch (err) {
+    console.warn('IDB write failed:', err);
+  }
+}
+
+export async function getFromIndexedDB<T>(key: string): Promise<T | null> {
+  try {
+    const db = await openIndexedDB();
+    if (!db) return null;
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
 // Storage helpers to simulate database operations across all screens
 export function getStoredData<T>(key: string, initialData: T): T {
   if (typeof window === 'undefined') return initialData;
@@ -290,11 +340,15 @@ export function getStoredData<T>(key: string, initialData: T): T {
     return initialData;
   }
   try {
-    const parsed = JSON.parse(item);
-    if (Array.isArray(parsed) && parsed.length === 0 && Array.isArray(initialData) && initialData.length > 0) {
-      localStorage.setItem(`i7_gestao_${key}`, JSON.stringify(initialData));
-      localStorage.setItem(key, JSON.stringify(initialData));
-      return initialData;
+    let parsed = JSON.parse(item);
+    if (Array.isArray(parsed)) {
+      // Limpa qualquer dado residual do exemplo antigo 'b3106524-17ad-4a9b-a6fa-e9fa93637c31' (Apto 31)
+      const cleaned = parsed.filter((u: any) => u.id !== 'b3106524-17ad-4a9b-a6fa-e9fa93637c31');
+      if (cleaned.length !== parsed.length) {
+        localStorage.setItem(`i7_gestao_${key}`, JSON.stringify(cleaned));
+        localStorage.setItem(key, JSON.stringify(cleaned));
+      }
+      return cleaned as any;
     }
     return parsed;
   } catch {
@@ -304,8 +358,34 @@ export function getStoredData<T>(key: string, initialData: T): T {
 
 export function saveStoredData<T>(key: string, data: T): void {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(`i7_gestao_${key}`, JSON.stringify(data));
-  localStorage.setItem(key, JSON.stringify(data));
+  
+  // Persiste de forma segura no IndexedDB (sem limite de 5MB)
+  saveToIndexedDB(key, data).catch(() => {});
+
+  try {
+    localStorage.setItem(`i7_gestao_${key}`, JSON.stringify(data));
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (err) {
+    console.warn('LocalStorage quota atingida, salvando versao otimizada:', err);
+    try {
+      if (Array.isArray(data)) {
+        // Reduz o payload de fotos no localStorage para nunca travar a gravação do imóvel
+        const safe = data.map((item: any) => {
+          if (item && item.photos && Array.isArray(item.photos)) {
+            return {
+              ...item,
+              photos: item.photos.slice(0, 4)
+            };
+          }
+          return item;
+        });
+        localStorage.setItem(`i7_gestao_${key}`, JSON.stringify(safe));
+        localStorage.setItem(key, JSON.stringify(safe));
+      }
+    } catch (e2) {
+      console.error('Falha de localStorage:', e2);
+    }
+  }
 }
 
 export function logAuditEvent(action: string, entity: string, details: string, user?: string): void {

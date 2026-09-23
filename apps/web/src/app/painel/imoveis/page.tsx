@@ -32,7 +32,7 @@ import {
   Layers,
   Info
 } from 'lucide-react';
-import { BuildingUnit, INITIAL_UNITS, getStoredData, saveStoredData, logAuditEvent } from '@/lib/gestaoData';
+import { BuildingUnit, INITIAL_UNITS, getStoredData, saveStoredData, logAuditEvent, compressImage } from '@/lib/gestaoData';
 import { unitToPropertyDTO } from '@/lib/api';
 import { AddressAutocomplete } from '@/components/AddressAutocomplete';
 
@@ -275,8 +275,8 @@ export default function PainelImoveisPage() {
     showToast('Imóvel excluído com sucesso.');
   };
 
-  // Upload de Fotos pelo navegador
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload e compressão de Fotos pelo navegador para nunca exceder limites de armazenamento
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
       if (formPhotos.length + files.length > 12) {
@@ -284,15 +284,20 @@ export default function PainelImoveisPage() {
         return;
       }
 
-      files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (event.target?.result) {
-            setFormPhotos(prev => [...prev, event.target!.result as string]);
-          }
-        };
-        reader.readAsDataURL(file);
-      });
+      for (const file of files) {
+        try {
+          const compressed = await compressImage(file, 1200, 0.72);
+          setFormPhotos(prev => [...prev, compressed]);
+        } catch {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            if (event.target?.result) {
+              setFormPhotos(prev => [...prev, event.target!.result as string]);
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      }
     }
   };
 
@@ -858,6 +863,14 @@ export default function PainelImoveisPage() {
                       <Link
                         href={`/imoveis/${unit.id}`}
                         target="_blank"
+                        onClick={() => {
+                          saveStoredData('units', units);
+                          fetch('/api/properties', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(unitToPropertyDTO(unit))
+                          }).catch(() => {});
+                        }}
                         className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-surface-hover hover:bg-surface text-text-secondary hover:text-text-primary text-xs font-bold transition-all border border-border"
                       >
                         <Eye className="w-3.5 h-3.5 text-brand-lime" />

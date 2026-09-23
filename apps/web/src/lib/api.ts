@@ -1,6 +1,6 @@
 import type { PropertyDTO } from '@i7/types';
 import { getSharedProperties, getSharedProperty, isDummyProperty } from './supabaseProperties';
-import { BuildingUnit, INITIAL_UNITS, getStoredData } from './gestaoData';
+import { BuildingUnit, INITIAL_UNITS, getStoredData, getFromIndexedDB } from './gestaoData';
 
 export function unitToPropertyDTO(u: BuildingUnit, index: number = 0): PropertyDTO {
   const numLat = typeof u.latitude === 'string' ? parseFloat(u.latitude) : Number(u.latitude);
@@ -142,9 +142,9 @@ export async function fetchPropertyById(id: string): Promise<PropertyDTO | null>
   if (!id) return null;
   const targetId = decodeURIComponent(id).trim().toLowerCase();
 
-  // 1. Procura primeiro nas unidades locais (independente do status, permitindo ver no site imediato)
+  // 1. Procura primeiro nas unidades locais (localStorage síncrono)
   const localUnits = getAllLocalUnits();
-  const foundLocal = localUnits.find(u => {
+  let foundLocal = localUnits.find(u => {
     const uId = String(u.id || '').toLowerCase();
     const uTitle = String(u.title || '').toLowerCase();
     const uUnit = String(u.unitNumber || '').toLowerCase();
@@ -154,19 +154,28 @@ export async function fetchPropertyById(id: string): Promise<PropertyDTO | null>
     return uId === targetId || uTitle === targetId || uUnit === targetId || combined === targetId || targetId.includes(uId) || uId.includes(targetId);
   });
 
-  if (foundLocal) {
-    const idx = localUnits.indexOf(foundLocal);
-    return unitToPropertyDTO(foundLocal, idx);
+  // 2. Se não encontrou no localStorage síncrono, busca no IndexedDB (que armazena fotos e dados sem limite de 5MB)
+  if (!foundLocal && typeof window !== 'undefined') {
+    try {
+      const idbUnits = await getFromIndexedDB<BuildingUnit[]>('units');
+      if (Array.isArray(idbUnits)) {
+        foundLocal = idbUnits.find(u => {
+          const uId = String(u.id || '').toLowerCase();
+          const uTitle = String(u.title || '').toLowerCase();
+          const uUnit = String(u.unitNumber || '').toLowerCase();
+          const uBuilding = String(u.buildingName || '').toLowerCase();
+          const combined = `${uBuilding} - ${uUnit}`.toLowerCase();
+          return uId === targetId || uTitle === targetId || uUnit === targetId || combined === targetId || targetId.includes(uId) || uId.includes(targetId);
+        });
+      }
+    } catch {
+      // continua
+    }
   }
 
-  // 2. Procura no Supabase
-  try {
-    const sp = await getSharedProperty(targetId);
-    if (sp && !isDummyProperty(sp)) {
-      return sp;
-    }
-  } catch {
-    // Silencia se não encontrado
+  if (foundLocal) {
+    const idx = (localUnits || []).indexOf(foundLocal);
+    return unitToPropertyDTO(foundLocal, idx >= 0 ? idx : 0);
   }
 
   // 3. Procura na API de servidor compartilhada
@@ -178,7 +187,8 @@ export async function fetchPropertyById(id: string): Promise<PropertyDTO | null>
         if (data && Array.isArray(data.properties)) {
           const found = data.properties.find((p: PropertyDTO) => 
             String(p.id || '').toLowerCase() === targetId ||
-            String(p.title || '').toLowerCase() === targetId
+            String(p.title || '').toLowerCase() === targetId ||
+            targetId.includes(String(p.id || '').toLowerCase())
           );
           if (found && !isDummyProperty(found)) {
             return found;
@@ -190,14 +200,14 @@ export async function fetchPropertyById(id: string): Promise<PropertyDTO | null>
     }
   }
 
-  // 4. Procura em INITIAL_UNITS como fallback direto garantido
-  const foundInInitial = INITIAL_UNITS.find(u => {
-    const uId = String(u.id || '').toLowerCase();
-    const uTitle = String(u.title || '').toLowerCase();
-    return uId === targetId || uTitle === targetId || targetId.includes(uId) || uId.includes(targetId);
-  });
-  if (foundInInitial) {
-    return unitToPropertyDTO(foundInInitial, 0);
+  // 4. Procura no Supabase
+  try {
+    const sp = await getSharedProperty(targetId);
+    if (sp && !isDummyProperty(sp)) {
+      return sp;
+    }
+  } catch {
+    // Silencia se não encontrado
   }
 
   return null;

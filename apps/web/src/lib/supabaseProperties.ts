@@ -6,9 +6,10 @@ export function isDummyProperty(p: PropertyDTO | any): boolean {
   const id = String(p.id || '').toLowerCase();
   const title = String(p.title || '').toLowerCase();
 
-  // Apenas filtra se explicitamente marcado como mock/sample ou teste fake
+  // Filtra dados de exemplo legado e mocks não cadastrados pelo usuário
+  if (id === 'b3106524-17ad-4a9b-a6fa-e9fa93637c31') return true;
   if (id.startsWith('mock-') || id.startsWith('sample-')) return true;
-  if (title.includes('exemplo fake') || title.includes('teste mock')) return true;
+  if (title.includes('exemplo fake') || title.includes('teste mock') || title.includes('apto 31')) return true;
   return false;
 }
 

@@ -49,14 +49,21 @@ export default function PropertyDetailPage() {
     }
 
     if (propertyId) {
-      fetchPropertyById(propertyId)
-        .then(data => {
+      const loadProperty = async () => {
+        try {
+          let data = await fetchPropertyById(propertyId);
+          if (!data) {
+            // Aguarda 300ms caso o storage/IndexedDB da outra aba esteja sincronizando
+            await new Promise(r => setTimeout(r, 300));
+            data = await fetchPropertyById(propertyId);
+          }
           setProperty(data);
           if (data) setProposalAmount(data.rentPrice);
-        })
-        .finally(() => {
+        } finally {
           setLoading(false);
-        });
+        }
+      };
+      loadProperty();
     } else {
       setLoading(false);
     }
