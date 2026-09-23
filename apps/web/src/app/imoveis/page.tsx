@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Search, MapPin, Filter, Grid, Map as MapIcon, Heart, Check, SlidersHorizontal, Sparkles, Building2, ArrowRight } from 'lucide-react';
+import { Search, MapPin, Filter, Grid, Map as MapIcon, Heart, Check, SlidersHorizontal, Sparkles, Building2, ArrowRight, RotateCw } from 'lucide-react';
 import { fetchProperties } from '@/lib/api';
 import { PropertyDTO } from '@i7/types';
 import { AddressAutocomplete } from '@/components/AddressAutocomplete';
@@ -34,11 +34,36 @@ function SearchPropertiesContent() {
   const [petFriendly, setPetFriendly] = useState(false);
   const [furnished, setFurnished] = useState(false);
 
-  useEffect(() => {
+  const loadData = () => {
+    setLoading(true);
     fetchProperties().then(data => {
       setProperties(data);
       setLoading(false);
     });
+  };
+
+  const handleManualRefresh = async () => {
+    setLoading(true);
+    try {
+      if (typeof window !== 'undefined' && 'caches' in window) {
+        const names = await caches.keys();
+        await Promise.all(names.map(name => caches.delete(name)));
+      }
+      if (typeof window !== 'undefined') {
+        sessionStorage.clear();
+      }
+    } catch (e) {}
+    loadData();
+  };
+
+  useEffect(() => {
+    // Limpa automaticamente caches antigos do navegador caso o celular guarde versão defasada
+    if (typeof window !== 'undefined' && 'caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => caches.delete(name));
+      }).catch(() => {});
+    }
+    loadData();
   }, []);
 
   const filteredProperties = properties.filter(p => {
@@ -92,6 +117,15 @@ function SearchPropertiesContent() {
           <div className="text-xs text-text-muted bg-surface-hover px-4 py-2 rounded-xl">
             <span className="text-text-primary font-bold">{filteredProperties.length}</span> imóveis
           </div>
+
+          <button
+            onClick={handleManualRefresh}
+            title="Atualizar lista e limpar cache"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-surface-hover hover:bg-border text-text-secondary transition-all"
+          >
+            <RotateCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-brand-lime' : ''}`} />
+            <span>Atualizar</span>
+          </button>
 
           <div className="flex items-center bg-surface-hover p-1 rounded-xl border border-border">
             <button 

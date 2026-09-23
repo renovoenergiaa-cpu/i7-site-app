@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "npx turbo run build --filter=@i7/web",
+  "buildCommand": "next build",
   "outputDirectory": ".next"
 }

@@ -129,7 +129,13 @@ export async function fetchProperties(_params?: Record<string, unknown>): Promis
   // 2. Tenta carregar da rota de API de servidor compartilhada
   if (typeof window !== 'undefined') {
     try {
-      const res = await fetch('/api/properties');
+      const res = await fetch(`/api/properties?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
       if (res.ok) {
         const data = await res.json();
         if (data && Array.isArray(data.properties)) {
