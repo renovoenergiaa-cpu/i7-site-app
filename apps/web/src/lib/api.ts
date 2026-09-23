@@ -88,9 +88,29 @@ export async function fetchProperties(_params?: Record<string, unknown>): Promis
   const result: PropertyDTO[] = [];
   const seenIds = new Set<string>();
 
-  // 1. Carrega todas as unidades aprovadas/disponíveis cadastradas localmente
+  // 1. Tenta carregar da rota de API de servidor compartilhada
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/properties');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.properties)) {
+          data.properties.forEach((p: PropertyDTO) => {
+            if (!isDummyProperty(p) && !seenIds.has(p.id)) {
+              seenIds.add(p.id);
+              result.push(p);
+            }
+          });
+        }
+      }
+    } catch {
+      // continua
+    }
+  }
+
+  // 2. Carrega todas as unidades cadastradas localmente
   const localUnits = getAllLocalUnits();
-  const approved = localUnits.filter(u => u.status === 'DISPONIVEL');
+  const approved = localUnits.filter(u => u.status === 'DISPONIVEL' || (u.status as any) === 'PUBLISHED');
   approved.forEach((u, i) => {
     if (!seenIds.has(u.id)) {
       seenIds.add(u.id);
@@ -98,7 +118,7 @@ export async function fetchProperties(_params?: Record<string, unknown>): Promis
     }
   });
 
-  // 2. Busca também do Supabase compartilhado (filtrando qualquer mock ou exemplo legado)
+  // 3. Busca do Supabase compartilhado
   try {
     const supabaseList = await getSharedProperties();
     if (supabaseList && supabaseList.length > 0) {
@@ -118,20 +138,47 @@ export async function fetchProperties(_params?: Record<string, unknown>): Promis
 
 export async function fetchPropertyById(id: string): Promise<PropertyDTO | null> {
   if (!id) return null;
-  const targetId = decodeURIComponent(id).trim();
+  const targetId = decodeURIComponent(id).trim().toLowerCase();
 
   // 1. Procura primeiro nas unidades locais (independente do status, permitindo ver no site imediato)
   const localUnits = getAllLocalUnits();
-  const foundLocal = localUnits.find(u => 
-    String(u.id).toLowerCase() === targetId.toLowerCase() ||
-    (u.title && u.title.toLowerCase() === targetId.toLowerCase())
-  );
+  const foundLocal = localUnits.find(u => {
+    const uId = String(u.id || '').toLowerCase();
+    const uTitle = String(u.title || '').toLowerCase();
+    const uUnit = String(u.unitNumber || '').toLowerCase();
+    const uBuilding = String(u.buildingName || '').toLowerCase();
+    const combined = `${uBuilding} - ${uUnit}`.toLowerCase();
+
+    return uId === targetId || uTitle === targetId || uUnit === targetId || combined === targetId || targetId.includes(uId);
+  });
+
   if (foundLocal) {
     const idx = localUnits.indexOf(foundLocal);
     return unitToPropertyDTO(foundLocal, idx);
   }
 
-  // 2. Procura no Supabase
+  // 2. Procura na API de servidor compartilhada
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/properties');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.properties)) {
+          const found = data.properties.find((p: PropertyDTO) => 
+            String(p.id || '').toLowerCase() === targetId ||
+            String(p.title || '').toLowerCase() === targetId
+          );
+          if (found && !isDummyProperty(found)) {
+            return found;
+          }
+        }
+      }
+    } catch {
+      // continua
+    }
+  }
+
+  // 3. Procura no Supabase
   try {
     const sp = await getSharedProperty(targetId);
     if (sp && !isDummyProperty(sp)) {

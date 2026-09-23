@@ -8,6 +8,7 @@ import { PropertyDTO } from '@i7/types';
 import { MapPin, Calendar, Send, MessageSquare, ShieldCheck, Heart, Sparkles, Check, ChevronRight, X, User, Lock, Phone } from 'lucide-react';
 import { getCurrentSession } from '@/lib/auth';
 import { ScheduledVisit, INITIAL_VISITS, getStoredData, saveStoredData, logAuditEvent } from '@/lib/gestaoData';
+import { PropertyMap } from '@/components/PropertyMap';
 
 export default function PropertyDetailPage() {
   const params = useParams();
@@ -281,6 +282,29 @@ export default function PropertyDetailPage() {
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-brand-lime" /> Portaria 24h
               </div>
+            </div>
+          </div>
+
+          {/* Localização no Mapa com Pin */}
+          <div className="p-6 rounded-2xl glass-card border border-border space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-brand-lime" /> Localização no Mapa
+                </h3>
+                <p className="text-xs text-text-secondary mt-0.5">
+                  {property.street}, {property.number} — {property.neighborhood}, {property.city} - {property.state}
+                </p>
+              </div>
+              <span className="text-[11px] font-black uppercase tracking-wider bg-brand-lime/10 text-brand-lime px-3 py-1 rounded-full border border-brand-lime/30">
+                {property.city || 'Sorocaba'}
+              </span>
+            </div>
+            <div className="rounded-xl overflow-hidden border border-border shadow-inner" style={{ height: '350px', width: '100%' }}>
+              <PropertyMap 
+                properties={[property]} 
+                searchMode="rent" 
+              />
             </div>
           </div>
 

@@ -4,17 +4,10 @@ import { supabase } from './supabase';
 export function isDummyProperty(p: PropertyDTO | any): boolean {
   if (!p) return true;
   const id = String(p.id || '').toLowerCase();
-  const title = (p.title || '').toLowerCase();
-  const desc = (p.description || '').toLowerCase();
-  const street = (p.street || '').toLowerCase();
-  const neighborhood = (p.neighborhood || '').toLowerCase();
 
-  // Filtra o exemplo antigo 'Apto 31' e mocks legados
+  // Apenas filtra a chave de seed legado ou IDs que começam explicitamente com mock ou sample
   if (id === 'b3106524-17ad-4a9b-a6fa-e9fa93637c31') return true;
-  if (id.startsWith('prop-') || id.startsWith('mock-') || id.startsWith('sample-')) return true;
-  if (title === 'apto 31' || title.includes('studio high-tech') || title.includes('itaim bibi') || title.includes('exemplo')) return true;
-  if (street.includes('mangal gourmet') || desc.includes('mangal gourmet') || neighborhood.includes('mangal gourmet')) return true;
-  if (street.includes('rua dos pinheiros') || street.includes('joaquim floriano')) return true;
+  if (id.startsWith('mock-') || id.startsWith('sample-')) return true;
   return false;
 }
 

@@ -28,6 +28,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { BuildingUnit, INITIAL_UNITS, getStoredData, saveStoredData, logAuditEvent } from '@/lib/gestaoData';
+import { unitToPropertyDTO } from '@/lib/api';
 import Link from 'next/link';
 
 export default function UnidadesPage() {
@@ -106,6 +107,15 @@ export default function UnidadesPage() {
     setUnits(updated);
     saveStoredData('units', updated);
 
+    const approvedUnit = updated.find(u => u.id === unit.id);
+    if (approvedUnit) {
+      fetch('/api/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(unitToPropertyDTO(approvedUnit))
+      }).catch(() => {});
+    }
+
     logAuditEvent(
       'AVALIACAO_APROVADA_E_PUBLICADA',
       'Avaliação de Imóveis',
@@ -179,6 +189,12 @@ export default function UnidadesPage() {
     const updated = [newUnit, ...units];
     setUnits(updated);
     saveStoredData('units', updated);
+
+    fetch('/api/properties', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(unitToPropertyDTO(newUnit))
+    }).catch(() => {});
 
     logAuditEvent(
       isNewBuildingMode ? 'NOVO_PREDIO_E_UNIDADE_CADASTRADO' : 'NOVA_UNIDADE_CADASTRADA',
@@ -547,7 +563,8 @@ export default function UnidadesPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       {unit.status === 'DISPONIVEL' && (
                         <Link
-                          href="/imoveis"
+                          href={`/imoveis/${unit.id}`}
+                          target="_blank"
                           className="flex-1 py-2 px-2.5 rounded-xl bg-surface border border-border hover:border-brand-lime text-text-primary font-bold text-xs flex items-center justify-center gap-1.5 transition-all text-center"
                           title="Ver anúncio público no site"
                         >

@@ -33,6 +33,7 @@ import {
   Info
 } from 'lucide-react';
 import { BuildingUnit, INITIAL_UNITS, getStoredData, saveStoredData, logAuditEvent } from '@/lib/gestaoData';
+import { unitToPropertyDTO } from '@/lib/api';
 import { AddressAutocomplete } from '@/components/AddressAutocomplete';
 
 export default function PainelImoveisPage() {
@@ -231,6 +232,17 @@ export default function PainelImoveisPage() {
     setUnits(updated);
     saveStoredData('units', updated);
 
+    if (newStatus === 'DISPONIVEL') {
+      const pub = updated.find(u => u.id === unit.id);
+      if (pub) {
+        fetch('/api/properties', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(unitToPropertyDTO(pub))
+        }).catch(() => {});
+      }
+    }
+
     logAuditEvent(
       newStatus === 'DISPONIVEL' ? 'IMOVEL_PUBLICADO_SITE' : 'IMOVEL_PAUSADO_SITE',
       'Gestão de Anúncios',
@@ -389,6 +401,17 @@ export default function PainelImoveisPage() {
       setUnits(updated);
       saveStoredData('units', updated);
 
+      if (targetStatus === 'DISPONIVEL') {
+        const ed = updated.find(u => u.id === editingId);
+        if (ed) {
+          fetch('/api/properties', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(unitToPropertyDTO(ed))
+          }).catch(() => {});
+        }
+      }
+
       logAuditEvent(
         'IMOVEL_EDITADO',
         'Gestão de Anúncios',
@@ -440,6 +463,14 @@ export default function PainelImoveisPage() {
       const updated = [newUnit, ...units];
       setUnits(updated);
       saveStoredData('units', updated);
+
+      if (targetStatus === 'DISPONIVEL') {
+        fetch('/api/properties', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(unitToPropertyDTO(newUnit))
+        }).catch(() => {});
+      }
 
       logAuditEvent(
         'NOVO_IMOVEL_CADASTRADO',

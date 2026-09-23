@@ -15,9 +15,11 @@ function SearchPropertiesContent() {
   const initNeighborhood = searchParams.get('neighborhood') || '';
   const initType = searchParams.get('type') || '';
 
+  const initView = searchParams.get('view') === 'map' ? 'map' : 'grid';
+
   const [properties, setProperties] = useState<PropertyDTO[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'map'>(initView);
   
   // Filter States
   const [searchNeighborhood, setSearchNeighborhood] = useState(initNeighborhood);
@@ -25,7 +27,7 @@ function SearchPropertiesContent() {
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [selectedType, setSelectedType] = useState(initType);
   const [searchMode, setSearchMode] = useState(initMode); // 'buy' | 'rent'
-  const [maxPrice, setMaxPrice] = useState(initMode === 'buy' ? 3000000 : 15000);
+  const [maxPrice, setMaxPrice] = useState(initMode === 'buy' ? 5000000 : 50000);
   const [bedrooms, setBedrooms] = useState<number | null>(null);
   const [bathrooms, setBathrooms] = useState<number | null>(null);
   const [parking, setParking] = useState<number | null>(null);
