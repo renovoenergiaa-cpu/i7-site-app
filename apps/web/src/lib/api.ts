@@ -99,6 +99,12 @@ export function getAllLocalUnits(): BuildingUnit[] {
     INITIAL_UNITS.forEach(u => {
       if (u && u.id && !uniqueMap.has(u.id) && !isDummyProperty(u)) {
         uniqueMap.set(u.id, u);
+      } else if (u && u.id && uniqueMap.has(u.id)) {
+        const existing = uniqueMap.get(u.id)!;
+        if (!existing.photos || existing.photos.length === 0 || existing.photos[0]?.startsWith('data:image')) {
+          existing.photos = u.photos;
+          existing.photosCount = u.photosCount;
+        }
       }
     });
 

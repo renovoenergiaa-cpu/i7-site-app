@@ -10,28 +10,33 @@ import os from 'os';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const STORE_FILE = path.join(os.tmpdir(), 'i7_properties_live_store.json');
+const LOCAL_STORE_FILE = path.join(process.cwd(), 'live_properties_store.json');
+const TMP_STORE_FILE = path.join(os.tmpdir(), 'i7_properties_live_store.json');
 
 // Memória persistente no processo do servidor para propriedades publicadas em tempo real
 let serverPropertiesStore: PropertyDTO[] = [];
 
 function loadPropertiesFromFile(): PropertyDTO[] {
-  try {
-    if (fs.existsSync(STORE_FILE)) {
-      const raw = fs.readFileSync(STORE_FILE, 'utf8');
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        return parsed.filter(p => !isDummyProperty(p));
+  for (const file of [LOCAL_STORE_FILE, TMP_STORE_FILE]) {
+    try {
+      if (fs.existsSync(file)) {
+        const raw = fs.readFileSync(file, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter(p => !isDummyProperty(p));
+        }
       }
-    }
-  } catch {}
+    } catch {}
+  }
   return [];
 }
 
 function savePropertiesToFile(data: PropertyDTO[]): void {
-  try {
-    fs.writeFileSync(STORE_FILE, JSON.stringify(data), 'utf8');
-  } catch {}
+  for (const file of [LOCAL_STORE_FILE, TMP_STORE_FILE]) {
+    try {
+      fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+    } catch {}
+  }
 }
 
 // Inicializa a partir do disco caso o processo tenha acabado de subir

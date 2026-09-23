@@ -270,6 +270,48 @@ export const INITIAL_UNITS: BuildingUnit[] = [
     ownerPhone: '(15) 98814-5050',
     createdAt: '2026-09-23T16:26:20.936Z',
     updatedAt: '2026-09-23T16:29:32.868Z'
+  },
+  {
+    id: 'u-1790189456824',
+    title: 'Apartamento para alugar no Edifício Luzes Campolim | 3 quartos, 85 m² | R$ 6.000/mês – Sorocaba/SP',
+    type: 'APARTAMENTO',
+    buildingName: 'Luzes Campolim',
+    unitNumber: '12',
+    floor: 'Padrão',
+    areaSqm: 85,
+    rentValue: 6000,
+    condoValue: 680,
+    iptuValue: 0,
+    adminFeeValue: 0,
+    status: 'DISPONIVEL',
+    bedrooms: 3,
+    bathrooms: 2,
+    parkingSpaces: 0,
+    furnished: false,
+    petFriendly: false,
+    description: 'Apartamento para locação no Edifício Luzes Campolim, em Sorocaba, com 85 m² bem distribuídos e 3 quartos, sendo 1 suíte, ideal para quem busca conforto, praticidade e uma excelente localização.\n\nO imóvel conta com ambientes integrados, boa iluminação natural e uma planta funcional, proporcionando mais conforto no dia a dia. A sala oferece um espaço agradável para receber amigos e familiares, enquanto a cozinha e os demais ambientes foram planejados para unir praticidade e organização.\n\nLocalizado na região do Campolim, o apartamento está em uma das áreas mais valorizadas de Sorocaba, com fácil acesso a comércios, serviços, restaurantes, supermercados e às principais vias da cidade.\n\nUma excelente opção para quem deseja morar com conforto e conveniência no Campolim. Entre em contato para mais informações e agende sua visita.',
+    photos: [
+      '/imoveis/uploads/luzes-campolim-1.jpg',
+      '/imoveis/uploads/luzes-campolim-2.jpg',
+      '/imoveis/uploads/luzes-campolim-3.jpg',
+      '/imoveis/uploads/luzes-campolim-4.jpg'
+    ],
+    photosCount: 4,
+    street: 'Rua Antonio Perez Hernandez',
+    number: '705',
+    complement: '',
+    neighborhood: 'Parque Campolim',
+    city: 'Sorocaba',
+    state: 'São Paulo',
+    zipCode: '18048-115',
+    latitude: -23.5400907,
+    longitude: -47.4723567,
+    address: 'Rua Antonio Perez Hernandez, 705 - Parque Campolim, Sorocaba - São Paulo',
+    ownerName: 'i7 Inteligência Imobiliária',
+    ownerEmail: 'admin@i7.com.br',
+    ownerPhone: '(15) 98814-5050',
+    createdAt: '2026-09-23T18:50:56.824Z',
+    updatedAt: new Date().toISOString()
   }
 ];
 
@@ -440,6 +482,22 @@ export function getStoredData<T>(key: string, initialData: T): T {
         if (title.includes('residencial mangal') || bName.includes('residencial mangal')) return false;
         return true;
       });
+      if (key === 'units' && Array.isArray(initialData)) {
+        const idSet = new Set(cleaned.map((u: any) => u.id));
+        (initialData as any[]).forEach(initUnit => {
+          if (initUnit && initUnit.id && !idSet.has(initUnit.id)) {
+            cleaned.push(initUnit);
+            idSet.add(initUnit.id);
+          } else if (initUnit && initUnit.id && idSet.has(initUnit.id)) {
+            const existing = cleaned.find((u: any) => u.id === initUnit.id);
+            if (existing && (!existing.photos || existing.photos.length === 0 || existing.photos[0]?.startsWith('data:image'))) {
+              existing.photos = initUnit.photos;
+              existing.photosCount = initUnit.photosCount;
+            }
+          }
+        });
+      }
+
       if (cleaned.length !== parsed.length) {
         localStorage.setItem(`i7_gestao_${key}`, JSON.stringify(cleaned));
         localStorage.setItem(key, JSON.stringify(cleaned));
