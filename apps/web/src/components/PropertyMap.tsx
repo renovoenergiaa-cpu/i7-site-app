@@ -14,9 +14,16 @@ interface PropertyMapProps {
   searchMode: 'buy' | 'rent' | 'sell';
   searchQuery?: string;
   searchTrigger?: number;
+  height?: string | number;
 }
 
-export const PropertyMap: React.FC<PropertyMapProps> = ({ properties, searchMode, searchQuery, searchTrigger }) => {
+export const PropertyMap: React.FC<PropertyMapProps> = ({ 
+  properties, 
+  searchMode, 
+  searchQuery, 
+  searchTrigger,
+  height = '650px'
+}) => {
   const [center, setCenter] = useState<[number, number]>(SOROCABA_DEFAULT_CENTER);
   const [zoom, setZoom] = useState(13);
   const [selectedProperty, setSelectedProperty] = useState<PropertyDTO | null>(null);
@@ -77,7 +84,7 @@ export const PropertyMap: React.FC<PropertyMapProps> = ({ properties, searchMode
   }, [properties, searchQuery, searchTrigger]);
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-border shadow-inner relative z-0" style={{ height: '650px', width: '100%' }}>
+    <div className="rounded-2xl overflow-hidden border border-border shadow-inner relative z-0" style={{ height: typeof height === 'number' ? `${height}px` : height, width: '100%' }}>
       <Map 
         center={center} 
         zoom={zoom} 

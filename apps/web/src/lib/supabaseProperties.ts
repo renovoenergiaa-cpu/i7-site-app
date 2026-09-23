@@ -4,10 +4,11 @@ import { supabase } from './supabase';
 export function isDummyProperty(p: PropertyDTO | any): boolean {
   if (!p) return true;
   const id = String(p.id || '').toLowerCase();
+  const title = String(p.title || '').toLowerCase();
 
-  // Apenas filtra a chave de seed legado ou IDs que começam explicitamente com mock ou sample
-  if (id === 'b3106524-17ad-4a9b-a6fa-e9fa93637c31') return true;
+  // Apenas filtra se explicitamente marcado como mock/sample ou teste fake
   if (id.startsWith('mock-') || id.startsWith('sample-')) return true;
+  if (title.includes('exemplo fake') || title.includes('teste mock')) return true;
   return false;
 }
 

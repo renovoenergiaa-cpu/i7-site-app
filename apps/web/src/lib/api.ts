@@ -66,7 +66,7 @@ export function unitToPropertyDTO(u: BuildingUnit, index: number = 0): PropertyD
 }
 
 export function getAllLocalUnits(): BuildingUnit[] {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === 'undefined') return INITIAL_UNITS;
   try {
     const rawGestao = localStorage.getItem('i7_gestao_units');
     if (rawGestao) {
@@ -78,9 +78,11 @@ export function getAllLocalUnits(): BuildingUnit[] {
       const parsed = JSON.parse(rawPlain);
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
-    return getStoredData<BuildingUnit[]>('units', INITIAL_UNITS);
+    const stored = getStoredData<BuildingUnit[]>('units', INITIAL_UNITS);
+    if (Array.isArray(stored) && stored.length > 0) return stored;
+    return INITIAL_UNITS;
   } catch {
-    return [];
+    return INITIAL_UNITS;
   }
 }
 
@@ -108,17 +110,7 @@ export async function fetchProperties(_params?: Record<string, unknown>): Promis
     }
   }
 
-  // 2. Carrega todas as unidades cadastradas localmente
-  const localUnits = getAllLocalUnits();
-  const approved = localUnits.filter(u => u.status === 'DISPONIVEL' || (u.status as any) === 'PUBLISHED');
-  approved.forEach((u, i) => {
-    if (!seenIds.has(u.id)) {
-      seenIds.add(u.id);
-      result.push(unitToPropertyDTO(u, i));
-    }
-  });
-
-  // 3. Busca do Supabase compartilhado
+  // 2. Busca do Supabase compartilhado oficial
   try {
     const supabaseList = await getSharedProperties();
     if (supabaseList && supabaseList.length > 0) {
@@ -132,6 +124,16 @@ export async function fetchProperties(_params?: Record<string, unknown>): Promis
   } catch (err) {
     console.warn('Supabase properties fetch error:', err);
   }
+
+  // 3. Carrega todas as unidades cadastradas localmente e de INITIAL_UNITS
+  const localUnits = getAllLocalUnits();
+  const approved = localUnits.filter(u => u.status === 'DISPONIVEL' || (u.status as any) === 'PUBLISHED');
+  approved.forEach((u, i) => {
+    if (!seenIds.has(u.id)) {
+      seenIds.add(u.id);
+      result.push(unitToPropertyDTO(u, i));
+    }
+  });
 
   return result;
 }
@@ -149,7 +151,7 @@ export async function fetchPropertyById(id: string): Promise<PropertyDTO | null>
     const uBuilding = String(u.buildingName || '').toLowerCase();
     const combined = `${uBuilding} - ${uUnit}`.toLowerCase();
 
-    return uId === targetId || uTitle === targetId || uUnit === targetId || combined === targetId || targetId.includes(uId);
+    return uId === targetId || uTitle === targetId || uUnit === targetId || combined === targetId || targetId.includes(uId) || uId.includes(targetId);
   });
 
   if (foundLocal) {
@@ -157,7 +159,17 @@ export async function fetchPropertyById(id: string): Promise<PropertyDTO | null>
     return unitToPropertyDTO(foundLocal, idx);
   }
 
-  // 2. Procura na API de servidor compartilhada
+  // 2. Procura no Supabase
+  try {
+    const sp = await getSharedProperty(targetId);
+    if (sp && !isDummyProperty(sp)) {
+      return sp;
+    }
+  } catch {
+    // Silencia se não encontrado
+  }
+
+  // 3. Procura na API de servidor compartilhada
   if (typeof window !== 'undefined') {
     try {
       const res = await fetch('/api/properties');
@@ -178,14 +190,14 @@ export async function fetchPropertyById(id: string): Promise<PropertyDTO | null>
     }
   }
 
-  // 3. Procura no Supabase
-  try {
-    const sp = await getSharedProperty(targetId);
-    if (sp && !isDummyProperty(sp)) {
-      return sp;
-    }
-  } catch {
-    // Silencia se não encontrado
+  // 4. Procura em INITIAL_UNITS como fallback direto garantido
+  const foundInInitial = INITIAL_UNITS.find(u => {
+    const uId = String(u.id || '').toLowerCase();
+    const uTitle = String(u.title || '').toLowerCase();
+    return uId === targetId || uTitle === targetId || targetId.includes(uId) || uId.includes(targetId);
+  });
+  if (foundInInitial) {
+    return unitToPropertyDTO(foundInInitial, 0);
   }
 
   return null;

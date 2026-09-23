@@ -184,8 +184,48 @@ export interface GestaoSettings {
   autoDunningEnabled: boolean;
 }
 
-// Initial Seed Data - Base Oficial Limpa de Produção
-export const INITIAL_UNITS: BuildingUnit[] = [];
+// Initial Seed Data - Base Oficial de Produção com Imóvel Ativo
+export const INITIAL_UNITS: BuildingUnit[] = [
+  {
+    id: 'b3106524-17ad-4a9b-a6fa-e9fa93637c31',
+    title: 'Apto 31 - Residencial Mangal Gourmet',
+    type: 'APARTAMENTO',
+    buildingName: 'Residencial Mangal Gourmet',
+    unitNumber: 'Apto 31',
+    floor: '3º Andar',
+    areaSqm: 95,
+    rentValue: 3500,
+    condoValue: 500,
+    iptuValue: 150,
+    adminFeeValue: 150,
+    status: 'DISPONIVEL',
+    bedrooms: 1,
+    bathrooms: 1,
+    parkingSpaces: 1,
+    furnished: false,
+    petFriendly: true,
+    description: 'Imóvel avaliado e aprovado pela i7 em Residencial Mangal Gourmet. Excelente estado de conservação, com 95m², ambientes amplos e bem ventilados, e infraestrutura completa em Sorocaba.',
+    photos: [
+      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200',
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200',
+      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200'
+    ],
+    photosCount: 3,
+    street: 'Rua Residencial Mangal Gourmet',
+    number: '100',
+    neighborhood: 'Vila Hortência',
+    city: 'Sorocaba',
+    state: 'SP',
+    zipCode: '18020-000',
+    latitude: -23.5152,
+    longitude: -47.4526,
+    address: 'R. Residencial Mangal Gourmet, 100 - Vila Hortência, Sorocaba - SP',
+    ownerName: 'i7 Inteligência Imobiliária',
+    ownerEmail: 'admin@i7.com.br',
+    ownerPhone: '(15) 3090-4000',
+    createdAt: '2026-09-13T00:35:09.846Z'
+  }
+];
 
 export const INITIAL_USERS: GestaoUser[] = [
   {
@@ -250,7 +290,13 @@ export function getStoredData<T>(key: string, initialData: T): T {
     return initialData;
   }
   try {
-    return JSON.parse(item);
+    const parsed = JSON.parse(item);
+    if (Array.isArray(parsed) && parsed.length === 0 && Array.isArray(initialData) && initialData.length > 0) {
+      localStorage.setItem(`i7_gestao_${key}`, JSON.stringify(initialData));
+      localStorage.setItem(key, JSON.stringify(initialData));
+      return initialData;
+    }
+    return parsed;
   } catch {
     return initialData;
   }
