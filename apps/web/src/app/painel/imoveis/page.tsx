@@ -30,17 +30,23 @@ import {
   Image as ImageIcon,
   Flame,
   Layers,
-  Info
+  Info,
+  Camera
 } from 'lucide-react';
 import { BuildingUnit, INITIAL_UNITS, getStoredData, saveStoredData, logAuditEvent, compressImage } from '@/lib/gestaoData';
 import { unitToPropertyDTO } from '@/lib/api';
 import { AddressAutocomplete } from '@/components/AddressAutocomplete';
+import { ImageSliderModal } from '@/components/ImageSliderModal';
 
 export default function PainelImoveisPage() {
   const [units, setUnits] = useState<BuildingUnit[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTab, setFilterTab] = useState<'ALL' | 'ONLINE' | 'DRAFT' | 'RENTED'>('ALL');
   const [filterType, setFilterType] = useState<string>('ALL');
+
+  // Slider Lightbox State
+  const [sliderUnit, setSliderUnit] = useState<BuildingUnit | null>(null);
+  const [sliderIndex, setSliderIndex] = useState(0);
 
   // Modal de Cadastro / Edição
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -719,19 +725,33 @@ export default function PainelImoveisPage() {
                 key={unit.id}
                 className="bg-white rounded-3xl border border-border shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all group"
               >
-                {/* Imagem de Capa com Badges */}
-                <div className="relative aspect-[16/10] bg-surface overflow-hidden">
+                {/* Imagem de Capa com Badges e Clique para Slide */}
+                <div 
+                  onClick={() => {
+                    setSliderUnit(unit);
+                    setSliderIndex(0);
+                  }}
+                  className="relative aspect-[16/10] bg-surface overflow-hidden cursor-pointer group/photo"
+                  title="Clique para ver fotos em slide"
+                >
                   <img 
                     src={coverPhoto} 
                     alt={unit.title || unit.unitNumber} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
                   />
+
+                  {/* Hover hint */}
+                  <div className="absolute inset-0 bg-black/25 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-10">
+                    <span className="px-3.5 py-1.5 rounded-full bg-black/70 text-white text-xs font-bold backdrop-blur-sm flex items-center gap-1.5 shadow-xl border border-white/20">
+                      <Maximize2 className="w-3.5 h-3.5 text-brand-lime" /> Ver Slide ({unit.photos?.length || 1})
+                    </span>
+                  </div>
 
                   {/* Gradiente superior */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />
 
                   {/* Badge de Status no Canto Superior Esquerdo */}
-                  <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
                     {isOnline && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-500 text-white shadow-lg backdrop-blur-sm">
                         <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
@@ -1452,6 +1472,19 @@ export default function PainelImoveisPage() {
           </div>
         </div>
       )}
+
+      {/* FULLSCREEN LIGHTBOX SLIDE MODAL */}
+      <ImageSliderModal
+        isOpen={!!sliderUnit}
+        onClose={() => setSliderUnit(null)}
+        images={(sliderUnit?.photos || []).map((url, i) => ({
+          url,
+          alt: `${sliderUnit?.title || sliderUnit?.unitNumber} - Foto ${i + 1}`,
+          caption: `${sliderUnit?.title || sliderUnit?.unitNumber} (${sliderUnit?.neighborhood || 'Sorocaba'})`
+        }))}
+        initialIndex={sliderIndex}
+        title={sliderUnit?.title || sliderUnit?.unitNumber}
+      />
     </div>
   );
 }

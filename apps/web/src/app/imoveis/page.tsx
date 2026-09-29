@@ -3,11 +3,12 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Search, MapPin, Filter, Grid, Map as MapIcon, Heart, Check, SlidersHorizontal, Sparkles, Building2, ArrowRight, RotateCw } from 'lucide-react';
+import { Search, MapPin, Filter, Grid, Map as MapIcon, Heart, Check, SlidersHorizontal, Sparkles, Building2, ArrowRight, RotateCw, ChevronLeft, ChevronRight, Camera, Maximize2 } from 'lucide-react';
 import { fetchProperties } from '@/lib/api';
 import { PropertyDTO } from '@i7/types';
 import { AddressAutocomplete } from '@/components/AddressAutocomplete';
 import { PropertyMap } from '@/components/PropertyMap';
+import { ImageSliderModal } from '@/components/ImageSliderModal';
 
 function SearchPropertiesContent() {
   const searchParams = useSearchParams();
@@ -20,6 +21,10 @@ function SearchPropertiesContent() {
   const [properties, setProperties] = useState<PropertyDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'map'>(initView);
+  
+  // Slider Lightbox State
+  const [sliderProperty, setSliderProperty] = useState<PropertyDTO | null>(null);
+  const [sliderIndex, setSliderIndex] = useState(0);
   
   // Filter States
   const [searchNeighborhood, setSearchNeighborhood] = useState(initNeighborhood);
@@ -360,60 +365,15 @@ function SearchPropertiesContent() {
                 </div>
               ) : (
                 filteredProperties.map(prop => (
-                  <div key={prop.id} className="rounded-2xl bg-white border border-border shadow-sm hover:shadow-xl overflow-hidden group flex flex-col justify-between transition-all">
-                    <div>
-                      <div className="relative h-48 w-full bg-surface-hover overflow-hidden">
-                        <img 
-                          src={prop.media[0]?.url || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800'} 
-                          alt={prop.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute top-3 left-3 flex gap-2">
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-brand-lime text-white shadow">
-                            i7 {searchMode === 'buy' ? 'Venda' : 'Aluguel'}
-                          </span>
-                          {prop.furnished && (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/90 text-text-primary backdrop-blur-md">
-                              Mobiliado
-                            </span>
-                          )}
-                        </div>
-                        <button className="absolute top-3 right-3 p-2 rounded-full bg-white/80 text-text-secondary hover:text-red-500 hover:bg-white transition-colors">
-                          <Heart className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div className="p-4 space-y-2">
-                        <div className="text-[11px] font-medium text-text-muted flex items-center gap-1 uppercase tracking-wider">
-                          <MapPin className="w-3.5 h-3.5 text-brand-lime" /> {prop.neighborhood}, {prop.city}
-                        </div>
-                        <h4 className="text-base font-bold text-text-primary group-hover:text-brand-lime transition-colors line-clamp-2">
-                          {prop.title}
-                        </h4>
-                        <div className="flex items-center gap-3 text-[11px] font-bold text-text-secondary pt-1">
-                          <span>{prop.bedrooms} DORMS</span> • <span>{prop.bathrooms} BANH</span> • <span>{prop.areaSqm} M²</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-4 pt-0 border-t border-border mt-3 flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                          {searchMode === 'buy' ? 'Valor de Venda' : 'Aluguel + Taxas'}
-                        </span>
-                        <div className="text-lg font-extrabold text-brand-lime">
-                          R$ {(searchMode === 'buy' ? (prop.totalMonthly || prop.rentPrice) * 180 : (prop.totalMonthly || prop.rentPrice)).toLocaleString('pt-BR')}
-                        </div>
-                      </div>
-                      <Link 
-                        href={`/imoveis/${prop.id}`}
-                        className="p-2.5 rounded-xl bg-surface-hover text-brand-lime hover:bg-brand-lime hover:text-white transition-colors"
-                      >
-                        <ArrowRight className="w-5 h-5" />
-                      </Link>
-                    </div>
-
-                  </div>
+                  <CatalogPropertyCard
+                    key={prop.id}
+                    prop={prop}
+                    searchMode={searchMode}
+                    onOpenSlider={(selectedProp, idx) => {
+                      setSliderProperty(selectedProp);
+                      setSliderIndex(idx);
+                    }}
+                  />
                 ))
               )}
             </div>
@@ -431,6 +391,157 @@ function SearchPropertiesContent() {
 
       </div>
 
+      {/* LIGHTBOX SLIDE MODAL */}
+      <ImageSliderModal
+        isOpen={!!sliderProperty}
+        onClose={() => setSliderProperty(null)}
+        images={(sliderProperty?.media || []).map((m, i) => ({
+          url: m.url,
+          alt: `${sliderProperty?.title} - Foto ${i + 1}`,
+          caption: sliderProperty?.title
+        }))}
+        initialIndex={sliderIndex}
+        title={sliderProperty?.title}
+      />
+
+    </div>
+  );
+}
+
+{/* CARD DE IMÓVEL INTERATIVO COM SLIDE DIRETO E LIGHTBOX */}
+function CatalogPropertyCard({ 
+  prop, 
+  searchMode, 
+  onOpenSlider 
+}: { 
+  prop: PropertyDTO; 
+  searchMode: string; 
+  onOpenSlider: (prop: PropertyDTO, index: number) => void;
+}) {
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const photos = prop.media && prop.media.length > 0 
+    ? prop.media 
+    : [{ id: 'fallback', url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800', type: 'IMAGE' }];
+
+  const currentPhoto = photos[photoIndex] || photos[0];
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length);
+  };
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPhotoIndex((prev) => (prev + 1) % photos.length);
+  };
+
+  const handleOpenSlider = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onOpenSlider(prop, photoIndex);
+  };
+
+  return (
+    <div className="rounded-2xl bg-white border border-border shadow-sm hover:shadow-xl overflow-hidden group flex flex-col justify-between transition-all">
+      <div>
+        {/* Imagem do Card com Slide Direto e Clique para Ampliar */}
+        <div 
+          onClick={handleOpenSlider}
+          className="relative h-52 w-full bg-surface-hover overflow-hidden cursor-pointer group/photo"
+          title="Clique para abrir galeria em slide"
+        >
+          <img 
+            src={currentPhoto.url} 
+            alt={prop.title}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover/photo:scale-105"
+          />
+
+          {/* Seta Esquerda (Slide direto no card) */}
+          {photos.length > 1 && (
+            <button
+              type="button"
+              onClick={handlePrev}
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/60 hover:bg-brand-lime text-white hover:text-black flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 shadow-md border border-white/20 active:scale-95"
+              title="Foto anterior"
+              aria-label="Foto anterior"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Seta Direita (Slide direto no card) */}
+          {photos.length > 1 && (
+            <button
+              type="button"
+              onClick={handleNext}
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/60 hover:bg-brand-lime text-white hover:text-black flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 shadow-md border border-white/20 active:scale-95"
+              title="Próxima foto"
+              aria-label="Próxima foto"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Indicador de fotos no canto inferior */}
+          {photos.length > 1 && (
+            <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/70 text-white text-[10px] font-bold font-mono flex items-center gap-1 backdrop-blur-sm shadow z-10">
+              <Camera className="w-3 h-3 text-brand-lime" />
+              <span>{photoIndex + 1}/{photos.length}</span>
+            </div>
+          )}
+
+          {/* Hover hint */}
+          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+            <span className="px-3 py-1 rounded-full bg-black/60 text-white text-[11px] font-bold backdrop-blur-sm flex items-center gap-1 shadow-lg border border-white/20">
+              <Maximize2 className="w-3 h-3 text-brand-lime" /> Ver Slide
+            </span>
+          </div>
+
+          {/* Badges de Venda / Aluguel */}
+          <div className="absolute top-3 left-3 flex gap-2 z-10 pointer-events-none">
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-brand-lime text-white shadow">
+              i7 {searchMode === 'buy' ? 'Venda' : 'Aluguel'}
+            </span>
+            {prop.furnished && (
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/90 text-text-primary backdrop-blur-md">
+                Mobiliado
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Detalhes do Imóvel */}
+        <Link href={`/imoveis/${prop.id}`} className="block p-4 space-y-2">
+          <div className="text-[11px] font-medium text-text-muted flex items-center gap-1 uppercase tracking-wider">
+            <MapPin className="w-3.5 h-3.5 text-brand-lime" /> {prop.neighborhood}, {prop.city}
+          </div>
+          <h4 className="text-base font-bold text-text-primary group-hover:text-brand-lime transition-colors line-clamp-2">
+            {prop.title}
+          </h4>
+          <div className="flex items-center gap-3 text-[11px] font-bold text-text-secondary pt-1">
+            <span>{prop.bedrooms} DORMS</span> • <span>{prop.bathrooms} BANH</span> • <span>{prop.areaSqm} M²</span>
+          </div>
+        </Link>
+      </div>
+
+      <div className="p-4 pt-0 border-t border-border mt-3 flex items-center justify-between">
+        <div>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+            {searchMode === 'buy' ? 'Valor de Venda' : 'Aluguel + Taxas'}
+          </span>
+          <div className="text-lg font-extrabold text-brand-lime">
+            R$ {(searchMode === 'buy' ? (prop.totalMonthly || prop.rentPrice) * 180 : (prop.totalMonthly || prop.rentPrice)).toLocaleString('pt-BR')}
+          </div>
+        </div>
+        <Link 
+          href={`/imoveis/${prop.id}`}
+          className="p-2.5 rounded-xl bg-surface-hover text-brand-lime hover:bg-brand-lime hover:text-white transition-colors"
+        >
+          <ArrowRight className="w-5 h-5" />
+        </Link>
+      </div>
     </div>
   );
 }

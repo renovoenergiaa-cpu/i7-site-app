@@ -5,11 +5,29 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { fetchPropertyById } from '@/lib/api';
 import { PropertyDTO } from '@i7/types';
-import { MapPin, Calendar, Send, MessageSquare, ShieldCheck, Heart, Sparkles, Check, ChevronRight, X, User, Lock, Phone } from 'lucide-react';
+import { 
+  MapPin, 
+  Calendar, 
+  Send, 
+  MessageSquare, 
+  ShieldCheck, 
+  Heart, 
+  Sparkles, 
+  Check, 
+  ChevronRight, 
+  ChevronLeft,
+  X, 
+  User, 
+  Lock, 
+  Phone,
+  Maximize2,
+  Camera
+} from 'lucide-react';
 import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 import { getCurrentSession } from '@/lib/auth';
 import { ScheduledVisit, INITIAL_VISITS, getStoredData, saveStoredData, logAuditEvent } from '@/lib/gestaoData';
 import { PropertyMap } from '@/components/PropertyMap';
+import { ImageSliderModal } from '@/components/ImageSliderModal';
 
 export default function PropertyDetailPage() {
   const params = useParams();
@@ -17,6 +35,10 @@ export default function PropertyDetailPage() {
   const [property, setProperty] = useState<PropertyDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
+  
+  // Lightbox Slide Modal
+  const [sliderOpen, setSliderOpen] = useState(false);
+  const [sliderInitialIndex, setSliderInitialIndex] = useState(0);
   
   // Modals
   const [visitModalOpen, setVisitModalOpen] = useState(false);
@@ -232,33 +254,105 @@ export default function PropertyDetailPage() {
         </div>
       </div>
 
-      {/* GALLERY GRID */}
+      {/* GALLERY GRID WITH SLIDE TRIGGER */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Main Photo */}
-        <div className="md:col-span-2 relative h-96 sm:h-[450px] rounded-2xl overflow-hidden glass-card">
+        {/* Main Photo with Slide Controls & Click-to-Expand */}
+        <div 
+          onClick={() => {
+            setSliderInitialIndex(activeMediaIndex);
+            setSliderOpen(true);
+          }}
+          className="md:col-span-2 relative h-96 sm:h-[480px] rounded-3xl overflow-hidden glass-card cursor-pointer group shadow-md"
+        >
           <img 
             src={property.media[activeMediaIndex]?.url || property.media[0]?.url} 
             alt={property.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
           />
+
+          {/* Seta Anterior (Slide na página) */}
+          {property.media.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveMediaIndex((prev) => (prev - 1 + property.media.length) % property.media.length);
+              }}
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-black/60 hover:bg-brand-lime text-white hover:text-black flex items-center justify-center transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 shadow-xl border border-white/20 hover:border-brand-lime hover:scale-110 active:scale-95"
+              title="Foto anterior"
+              aria-label="Foto anterior"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+          )}
+
+          {/* Seta Próxima (Slide na página) */}
+          {property.media.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveMediaIndex((prev) => (prev + 1) % property.media.length);
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-black/60 hover:bg-brand-lime text-white hover:text-black flex items-center justify-center transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 shadow-xl border border-white/20 hover:border-brand-lime hover:scale-110 active:scale-95"
+              title="Próxima foto"
+              aria-label="Próxima foto"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          )}
+
+          {/* Hover Overlay Hint */}
+          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+            <span className="px-4 py-2 rounded-full bg-black/70 text-white text-xs font-bold backdrop-blur-md flex items-center gap-2 shadow-2xl border border-white/20">
+              <Maximize2 className="w-4 h-4 text-brand-lime" /> Clique para abrir galeria em tela cheia (Slide)
+            </span>
+          </div>
+
+          {/* Tour 360 Badge */}
           {property.hasVirtualTour && (
-            <div className="absolute bottom-4 left-4 px-4 py-2 rounded-xl bg-background/80 backdrop-blur-md text-xs font-bold text-brand-lime border border-brand-lime/30 flex items-center gap-2">
+            <div className="absolute bottom-4 left-4 px-4 py-2 rounded-xl bg-black/80 backdrop-blur-md text-xs font-bold text-brand-lime border border-brand-lime/40 flex items-center gap-2 shadow-lg">
               <Sparkles className="w-4 h-4" /> Tour Virtual 360° Disponível
             </div>
           )}
+
+          {/* Botão Ver todas as fotos / Slide */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSliderInitialIndex(activeMediaIndex);
+              setSliderOpen(true);
+            }}
+            className="absolute bottom-4 right-4 px-4 py-2.5 rounded-xl bg-black/80 hover:bg-black text-white hover:text-brand-lime text-xs font-bold border border-white/20 backdrop-blur-md flex items-center gap-2 shadow-xl transition-all transform hover:scale-105 active:scale-95"
+          >
+            <Camera className="w-4 h-4 text-brand-lime" />
+            <span>Ver fotos ({activeMediaIndex + 1}/{property.media.length})</span>
+            <Maximize2 className="w-3.5 h-3.5 opacity-70 ml-0.5" />
+          </button>
         </div>
 
         {/* Thumbnails */}
-        <div className="flex md:flex-col gap-4 overflow-x-auto">
+        <div className="flex md:flex-col gap-3 overflow-x-auto pb-2 md:pb-0">
           {property.media.map((item, idx) => (
             <button 
               key={item.id}
-              onClick={() => setActiveMediaIndex(idx)}
-              className={`relative h-24 md:h-[135px] w-36 md:w-full rounded-xl overflow-hidden border-2 transition-all shrink-0 ${
-                activeMediaIndex === idx ? 'border-brand-lime shadow-glow-lime' : 'border-transparent opacity-70 hover:opacity-100'
+              onClick={() => {
+                setActiveMediaIndex(idx);
+                setSliderInitialIndex(idx);
+                setSliderOpen(true);
+              }}
+              className={`relative h-24 md:h-[110px] w-36 md:w-full rounded-2xl overflow-hidden border-2 transition-all shrink-0 group/thumb cursor-pointer ${
+                activeMediaIndex === idx 
+                  ? 'border-brand-lime shadow-glow-lime scale-[1.01]' 
+                  : 'border-transparent opacity-70 hover:opacity-100 hover:border-border'
               }`}
+              title={`Ver foto ${idx + 1} em tela cheia`}
             >
-              <img src={item.url} alt="Miniatura" className="w-full h-full object-cover" />
+              <img src={item.url} alt={`Miniatura ${idx + 1}`} className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform" />
+              <div className="absolute bottom-1 right-1.5 px-1.5 py-0.5 rounded bg-black/60 text-[10px] font-mono font-bold text-white">
+                {idx + 1}
+              </div>
             </button>
           ))}
         </div>
@@ -549,6 +643,19 @@ export default function PropertyDetailPage() {
           </div>
         </div>
       )}
+
+      {/* FULLSCREEN LIGHTBOX SLIDE MODAL */}
+      <ImageSliderModal
+        isOpen={sliderOpen}
+        onClose={() => setSliderOpen(false)}
+        images={property.media.map((item, i) => ({
+          url: item.url,
+          alt: `${property.title} - Foto ${i + 1}`,
+          caption: property.title
+        }))}
+        initialIndex={sliderInitialIndex}
+        title={property.title}
+      />
 
     </div>
   );

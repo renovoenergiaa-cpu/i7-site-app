@@ -3,11 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Search, MapPin, Building, ShieldCheck, Sparkles, KeyRound, ArrowRight, Heart, Calendar } from 'lucide-react';
+import { Search, MapPin, Building, ShieldCheck, Sparkles, KeyRound, ArrowRight, Heart, Calendar, ChevronLeft, ChevronRight, Camera, Maximize2 } from 'lucide-react';
 import { fetchProperties } from '@/lib/api';
 import { PropertyDTO } from '@i7/types';
 import { AddressAutocomplete } from '@/components/AddressAutocomplete';
 import { useFavorites } from '@/lib/useFavorites';
+import { ImageSliderModal } from '@/components/ImageSliderModal';
 
 export default function HomePage() {
   const [properties, setProperties] = useState<PropertyDTO[]>([]);
@@ -16,6 +17,10 @@ export default function HomePage() {
   const [selectedType, setSelectedType] = useState('');
   const [searchMode, setSearchMode] = useState<'buy' | 'rent' | 'sell'>('rent');
   const { toggleFavorite, isFavorite } = useFavorites();
+  
+  // Slider Lightbox State
+  const [sliderProperty, setSliderProperty] = useState<PropertyDTO | null>(null);
+  const [sliderIndex, setSliderIndex] = useState(0);
 
   useEffect(() => {
     fetchProperties().then(data => setProperties(data));
@@ -210,69 +215,183 @@ export default function HomePage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {properties.slice(0, 3).map((prop) => (
-              <div key={prop.id} className="rounded-2xl glass-card overflow-hidden group flex flex-col h-full">
-                
-                {/* Photo Thumbnail */}
-                <div className="relative h-64 w-full bg-surface-hover overflow-hidden">
-                  <img 
-                    src={prop.media[0]?.url || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800'} 
-                    alt={prop.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  
-                  {/* Badges */}
-                  <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
-                    <span className="px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wide bg-brand-lime text-white shadow-md">
-                      Para Alugar
-                    </span>
-                    {prop.petFriendly && (
-                      <span className="px-3 py-1 rounded-md text-xs font-semibold bg-white text-text-primary shadow-sm">
-                        Pet Friendly
-                      </span>
-                    )}
-                  </div>
-
-                  <button 
-                    onClick={() => toggleFavorite(prop)}
-                    className="absolute top-4 right-4 p-2.5 rounded-full bg-white/90 text-text-muted hover:text-red-500 hover:bg-white shadow-sm transition-all"
-                  >
-                    <Heart className={`w-4 h-4 ${isFavorite(prop.id) ? 'fill-red-500 text-red-500' : ''}`} />
-                  </button>
-                </div>
-
-                {/* Property Details */}
-                <div className="p-6 flex flex-col flex-grow">
-                  <div className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2 flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5" /> {prop.neighborhood}, {prop.city}
-                  </div>
-                  <h3 className="text-lg font-bold text-text-primary line-clamp-2 mb-4 group-hover:text-brand-lime transition-colors">
-                    {prop.title}
-                  </h3>
-                  
-                  <div className="flex items-center gap-4 text-sm text-text-secondary mb-6">
-                    <span><strong>{prop.bedrooms}</strong> quartos</span>
-                    <span className="w-1 h-1 rounded-full bg-border"></span>
-                    <span><strong>{prop.bathrooms}</strong> banheiros</span>
-                    <span className="w-1 h-1 rounded-full bg-border"></span>
-                    <span><strong>{prop.areaSqm}</strong> m²</span>
-                  </div>
-
-                  <div className="mt-auto pt-4 border-t border-border flex items-end justify-between">
-                    <div>
-                      <span className="text-xs text-text-muted block mb-0.5">Aluguel:</span>
-                      <div className="text-2xl font-black text-brand-lime">
-                        R$ {prop.totalMonthly?.toLocaleString('pt-BR')} <span className="text-sm font-normal text-text-secondary">/mês</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
+              <FeaturedPropertyCard
+                key={prop.id}
+                prop={prop}
+                isFav={isFavorite(prop.id)}
+                onToggleFav={() => toggleFavorite(prop)}
+                onOpenSlider={(selectedProp, idx) => {
+                  setSliderProperty(selectedProp);
+                  setSliderIndex(idx);
+                }}
+              />
             ))}
           </div>
         )}
       </section>
 
+      {/* FULLSCREEN LIGHTBOX SLIDE MODAL */}
+      <ImageSliderModal
+        isOpen={!!sliderProperty}
+        onClose={() => setSliderProperty(null)}
+        images={(sliderProperty?.media || []).map((m, i) => ({
+          url: m.url,
+          alt: `${sliderProperty?.title} - Foto ${i + 1}`,
+          caption: sliderProperty?.title
+        }))}
+        initialIndex={sliderIndex}
+        title={sliderProperty?.title}
+      />
+
+    </div>
+  );
+}
+
+{/* CARD DE IMÓVEL EM DESTAQUE COM SLIDE E LIGHTBOX */}
+function FeaturedPropertyCard({
+  prop,
+  onOpenSlider,
+  isFav,
+  onToggleFav
+}: {
+  prop: PropertyDTO;
+  onOpenSlider: (prop: PropertyDTO, index: number) => void;
+  isFav: boolean;
+  onToggleFav: () => void;
+}) {
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const photos = prop.media && prop.media.length > 0
+    ? prop.media
+    : [{ id: 'fallback', url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800', type: 'IMAGE' }];
+
+  const currentPhoto = photos[photoIndex] || photos[0];
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length);
+  };
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPhotoIndex((prev) => (prev + 1) % photos.length);
+  };
+
+  const handleOpenSlider = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onOpenSlider(prop, photoIndex);
+  };
+
+  return (
+    <div className="rounded-2xl glass-card overflow-hidden group flex flex-col h-full bg-white border border-border shadow-sm hover:shadow-xl transition-all">
+      {/* Foto com slide direto e clique para abrir lightbox */}
+      <div 
+        onClick={handleOpenSlider}
+        className="relative h-64 w-full bg-surface-hover overflow-hidden cursor-pointer group/photo"
+        title="Clique para abrir galeria em slide"
+      >
+        <img 
+          src={currentPhoto.url} 
+          alt={prop.title}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover/photo:scale-105"
+        />
+
+        {/* Seta Esquerda */}
+        {photos.length > 1 && (
+          <button
+            type="button"
+            onClick={handlePrev}
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-brand-lime text-white hover:text-black flex items-center justify-center transition-all opacity-0 group-hover/photo:opacity-100 shadow-md border border-white/20 active:scale-95"
+            title="Foto anterior"
+            aria-label="Foto anterior"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* Seta Direita */}
+        {photos.length > 1 && (
+          <button
+            type="button"
+            onClick={handleNext}
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-brand-lime text-white hover:text-black flex items-center justify-center transition-all opacity-0 group-hover/photo:opacity-100 shadow-md border border-white/20 active:scale-95"
+            title="Próxima foto"
+            aria-label="Próxima foto"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* Indicador de fotos */}
+        {photos.length > 1 && (
+          <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-lg bg-black/75 text-white text-[11px] font-bold font-mono flex items-center gap-1.5 backdrop-blur-sm shadow z-10">
+            <Camera className="w-3.5 h-3.5 text-brand-lime" />
+            <span>{photoIndex + 1}/{photos.length}</span>
+          </div>
+        )}
+
+        {/* Hover hint */}
+        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+          <span className="px-3.5 py-1.5 rounded-full bg-black/70 text-white text-xs font-bold backdrop-blur-sm flex items-center gap-1.5 shadow-lg border border-white/20">
+            <Maximize2 className="w-3.5 h-3.5 text-brand-lime" /> Ver Slide
+          </span>
+        </div>
+
+        {/* Badges */}
+        <div className="absolute top-4 left-4 flex flex-col items-start gap-2 z-10 pointer-events-none">
+          <span className="px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wide bg-brand-lime text-white shadow-md">
+            Para Alugar
+          </span>
+          {prop.petFriendly && (
+            <span className="px-3 py-1 rounded-md text-xs font-semibold bg-white/95 text-text-primary shadow-sm backdrop-blur-sm">
+              Pet Friendly
+            </span>
+          )}
+        </div>
+
+        <button 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleFav();
+          }}
+          className="absolute top-4 right-4 p-2.5 rounded-full bg-white/90 text-text-muted hover:text-red-500 hover:bg-white shadow-sm transition-all z-10"
+        >
+          <Heart className={`w-4 h-4 ${isFav ? 'fill-red-500 text-red-500' : ''}`} />
+        </button>
+      </div>
+
+      {/* Property Details */}
+      <Link href={`/imoveis/${prop.id}`} className="p-6 flex flex-col flex-grow">
+        <div className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2 flex items-center gap-1">
+          <MapPin className="w-3.5 h-3.5 text-brand-lime" /> {prop.neighborhood}, {prop.city}
+        </div>
+        <h3 className="text-lg font-bold text-text-primary line-clamp-2 mb-4 group-hover:text-brand-lime transition-colors">
+          {prop.title}
+        </h3>
+        
+        <div className="flex items-center gap-4 text-sm text-text-secondary mb-6">
+          <span><strong>{prop.bedrooms}</strong> quartos</span>
+          <span className="w-1 h-1 rounded-full bg-border"></span>
+          <span><strong>{prop.bathrooms}</strong> banheiros</span>
+          <span className="w-1 h-1 rounded-full bg-border"></span>
+          <span><strong>{prop.areaSqm}</strong> m²</span>
+        </div>
+
+        <div className="mt-auto pt-4 border-t border-border flex items-end justify-between">
+          <div>
+            <span className="text-xs text-text-muted block mb-0.5">Aluguel:</span>
+            <div className="text-2xl font-black text-brand-lime">
+              R$ {prop.totalMonthly?.toLocaleString('pt-BR')} <span className="text-sm font-normal text-text-secondary">/mês</span>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-brand-lime flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+            Ver Detalhes →
+          </span>
+        </div>
+      </Link>
     </div>
   );
 }
