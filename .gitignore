@@ -40,3 +40,6 @@ Thumbs.db
 .vercel
 .turbo/
 *.tsbuildinfo
+
+# Graphify
+graphify-out/

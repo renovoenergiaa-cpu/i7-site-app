@@ -16,7 +16,7 @@ import {
   Check,
   X
 } from 'lucide-react';
-import { GestaoBoleto, INITIAL_BOLETOS, getStoredData, saveStoredData } from '@/lib/gestaoData';
+import { GestaoBoleto, INITIAL_BOLETOS, GestaoSettings, INITIAL_SETTINGS, getStoredData, saveStoredData } from '@/lib/gestaoData';
 
 interface AsaasAccountInfo {
   connected: boolean;
@@ -49,7 +49,16 @@ export default function FinanceAdminPage() {
   const fetchAsaasData = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/asaas');
+      const settings = getStoredData<GestaoSettings>('settings', INITIAL_SETTINGS);
+      const headers: Record<string, string> = {};
+      if (settings?.asaasApiKey && settings.asaasApiKey !== 'configurado_no_painel') {
+        headers['x-asaas-api-key'] = settings.asaasApiKey;
+      }
+      if (settings?.asaasEnvironment) {
+        headers['x-asaas-env'] = settings.asaasEnvironment;
+      }
+
+      const res = await fetch('/api/asaas', { headers });
       const data = await res.json();
       setAsaasInfo(data);
     } catch (err) {
@@ -74,9 +83,18 @@ export default function FinanceAdminPage() {
     e.preventDefault();
     setCreatingPayment(true);
     try {
+      const settings = getStoredData<GestaoSettings>('settings', INITIAL_SETTINGS);
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (settings?.asaasApiKey && settings.asaasApiKey !== 'configurado_no_painel') {
+        headers['x-asaas-api-key'] = settings.asaasApiKey;
+      }
+      if (settings?.asaasEnvironment) {
+        headers['x-asaas-env'] = settings.asaasEnvironment;
+      }
+
       const res = await fetch('/api/asaas', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           customerName,
           customerEmail,

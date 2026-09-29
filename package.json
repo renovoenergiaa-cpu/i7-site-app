@@ -12,6 +12,7 @@
     "dev": "npx turbo run dev",
     "build": "npx turbo run build",
     "lint": "npx turbo run lint",
+    "test": "node --test tests/*.test.mjs",
     "db:generate": "npm --prefix apps/api run db:generate",
     "db:push": "npm --prefix apps/api run db:push",
     "db:seed": "npm --prefix apps/api run db:seed"

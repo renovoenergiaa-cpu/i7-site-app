@@ -1,4 +1,4 @@
-import type { PropertyDTO } from '@i7/types';
+import { PropertyDTO, PropertyStatus } from '@i7/types';
 import { getSharedProperties, getSharedProperty, isDummyProperty } from './supabaseProperties';
 import { BuildingUnit, INITIAL_UNITS, getStoredData, getFromIndexedDB } from './gestaoData';
 
@@ -21,6 +21,12 @@ export function unitToPropertyDTO(u: BuildingUnit, index: number = 0): PropertyD
     'COMMERCIAL'
   ) as any;
 
+  const resolvedStatus: PropertyStatus = 
+    u.status === 'DISPONIVEL' ? PropertyStatus.PUBLISHED :
+    u.status === 'LOCADO' ? PropertyStatus.RENTED :
+    u.status === 'PENDENTE_AVALIACAO' ? PropertyStatus.UNDER_REVIEW :
+    PropertyStatus.INACTIVE;
+
   const rentVal = Number(u.rentValue) || 0;
   const condoVal = Number(u.condoValue) || 0;
   const adminOrIptuVal = Number(u.adminFeeValue ?? u.iptuValue ?? 0);
@@ -33,7 +39,7 @@ export function unitToPropertyDTO(u: BuildingUnit, index: number = 0): PropertyD
       ? `[Parecer i7]: ${u.adminFeedback}` 
       : `Imóvel avaliado e aprovado pela i7 em ${u.buildingName || u.neighborhood || 'Sorocaba'}. Excelente estado de conservação, com ${u.areaSqm || 50}m², ${u.bedrooms ?? 0} quarto(s) e infraestrutura completa.`),
     type: resolvedType,
-    status: 'PUBLISHED' as any,
+    status: resolvedStatus,
     street: u.street || u.address || u.buildingName || 'Rua Principal',
     number: u.number || '100',
     complement: u.complement,
@@ -119,13 +125,13 @@ export async function fetchProperties(_params?: Record<string, unknown>): Promis
   const result: PropertyDTO[] = [];
   const seenIds = new Set<string>();
 
-  // 1. Carrega todas as unidades reais locais e oficiais
+  // 1. Carrega todas as unidades reais locais e oficiais disponíveis para locação
   const localUnits = getAllLocalUnits();
-  const approved = localUnits.filter(u => u && u.status !== 'REPROVADO' && u.status !== 'LOCADO' && !isDummyProperty(u));
+  const approved = localUnits.filter(u => u && u.status === 'DISPONIVEL' && !isDummyProperty(u));
   approved.forEach((u, i) => {
     if (!seenIds.has(u.id)) {
       const dto = unitToPropertyDTO(u, i);
-      if (!isDummyProperty(dto)) {
+      if (!isDummyProperty(dto) && dto.status === PropertyStatus.PUBLISHED) {
         seenIds.add(u.id);
         result.push(dto);
       }
@@ -146,7 +152,7 @@ export async function fetchProperties(_params?: Record<string, unknown>): Promis
         const data = await res.json();
         if (data && Array.isArray(data.properties)) {
           data.properties.forEach((p: PropertyDTO) => {
-            if (!isDummyProperty(p) && !seenIds.has(p.id)) {
+            if (!isDummyProperty(p) && p.status === PropertyStatus.PUBLISHED && !seenIds.has(p.id)) {
               seenIds.add(p.id);
               result.push(p);
             }
@@ -163,7 +169,7 @@ export async function fetchProperties(_params?: Record<string, unknown>): Promis
     const supabaseList = await getSharedProperties();
     if (supabaseList && supabaseList.length > 0) {
       supabaseList.forEach(p => {
-        if (!isDummyProperty(p) && !seenIds.has(p.id)) {
+        if (!isDummyProperty(p) && p.status === PropertyStatus.PUBLISHED && !seenIds.has(p.id)) {
           seenIds.add(p.id);
           result.push(p);
         }

@@ -253,6 +253,7 @@ export default function UnidadesPage() {
     const updated = units.filter(u => u.id !== unit.id);
     setUnits(updated);
     saveStoredData('units', updated);
+    fetch(`/api/properties?id=${encodeURIComponent(unit.id)}`, { method: 'DELETE' }).catch(() => {});
 
     logAuditEvent(
       'ANUNCIO_EXCLUIDO',

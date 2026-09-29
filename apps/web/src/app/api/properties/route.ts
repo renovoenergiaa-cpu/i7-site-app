@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { PropertyDTO } from '@i7/types';
+import { NextRequest, NextResponse } from 'next/server';
+import { PropertyDTO, PropertyStatus } from '@i7/types';
 import { isDummyProperty } from '@/lib/supabaseProperties';
 import { INITIAL_UNITS } from '@/lib/gestaoData';
 import { unitToPropertyDTO } from '@/lib/api';
@@ -44,41 +44,50 @@ if (serverPropertiesStore.length === 0) {
   serverPropertiesStore = loadPropertiesFromFile();
 }
 
-export async function GET() {
-  // Recarrega do arquivo para sincronizar caso múltiplos workers/processos estejam rodando
+export async function GET(request: NextRequest) {
+  const correlationId = request.headers.get('x-correlation-id') || `prop-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const { searchParams } = new URL(request.url);
+  const includeAll = searchParams.get('all') === 'true';
+
   const fromFile = loadPropertiesFromFile();
   const mergedMap = new Map<string, PropertyDTO>();
   
-  // 1. Sempre inclui os imóveis oficiais cadastrados (ex: Nissi Centro Comercial)
+  // 1. Inclui os imóveis oficiais padrão
   INITIAL_UNITS.forEach((u, i) => {
     if (u && u.id && !isDummyProperty(u)) {
-      mergedMap.set(u.id, unitToPropertyDTO(u, i));
+      const dto = unitToPropertyDTO(u, i);
+      mergedMap.set(u.id, dto);
     }
   });
 
-  // 2. Inclui os imóveis sincronizados dinamicamente
-  [...serverPropertiesStore, ...fromFile].forEach(p => {
+  // 2. Sobrescreve com as edições e adições mais recentes do CRM
+  [...fromFile, ...serverPropertiesStore].forEach(p => {
     if (p && p.id && !isDummyProperty(p)) {
       mergedMap.set(p.id, p);
     }
   });
 
-  const clean = Array.from(mergedMap.values());
-  serverPropertiesStore = clean;
+  let clean = Array.from(mergedMap.values());
+  if (!includeAll) {
+    clean = clean.filter(p => p.status === PropertyStatus.PUBLISHED);
+  }
+  serverPropertiesStore = Array.from(mergedMap.values());
 
   return NextResponse.json(
-    { properties: clean },
+    { properties: clean, count: clean.length, correlationId },
     {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
         'Pragma': 'no-cache',
         'Expires': '0',
+        'x-correlation-id': correlationId,
       }
     }
   );
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const correlationId = req.headers.get('x-correlation-id') || `prop-post-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   try {
     const property: PropertyDTO = await req.json();
     if (!property || !property.id || isDummyProperty(property)) {
@@ -87,18 +96,43 @@ export async function POST(req: Request) {
 
     const fromFile = loadPropertiesFromFile();
     const filtered = [...serverPropertiesStore, ...fromFile].filter(p => p.id !== property.id && !isDummyProperty(p));
+    
     serverPropertiesStore = [property, ...filtered];
     savePropertiesToFile(serverPropertiesStore);
 
     return NextResponse.json(
-      { success: true, count: serverPropertiesStore.length },
+      { success: true, count: serverPropertiesStore.length, propertyId: property.id, status: property.status },
       {
         headers: {
           'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          'x-correlation-id': correlationId,
         }
       }
     );
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err.message }, { status: 500, headers: { 'x-correlation-id': correlationId } });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const correlationId = req.headers.get('x-correlation-id') || `prop-del-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    if (!id) {
+      return NextResponse.json({ error: 'ID do imóvel não informado' }, { status: 400 });
+    }
+
+    const fromFile = loadPropertiesFromFile();
+    const updated = [...serverPropertiesStore, ...fromFile].filter(p => p.id !== id);
+    serverPropertiesStore = updated;
+    savePropertiesToFile(updated);
+
+    return NextResponse.json(
+      { success: true, removedId: id, count: updated.length },
+      { headers: { 'x-correlation-id': correlationId } }
+    );
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500, headers: { 'x-correlation-id': correlationId } });
   }
 }

@@ -361,7 +361,7 @@ export default function PainelVisitasPage() {
                   <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-950 space-y-0.5">
                     <strong className="block text-blue-900 font-bold">Nova Data Proposta pelo Administrador:</strong>
                     <div>{visit.proposedDate.replace('T', ' às ')}</div>
-                    {visit.adminNotes && <div className="text-[11px] text-blue-800 italic mt-0.5">"{visit.adminNotes}"</div>}
+                    {visit.adminNotes && <div className="text-[11px] text-blue-800 italic mt-0.5">&ldquo;{visit.adminNotes}&rdquo;</div>}
                   </div>
                 )}
 

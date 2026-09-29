@@ -232,15 +232,13 @@ export default function PainelImoveisPage() {
     setUnits(updated);
     saveStoredData('units', updated);
 
-    if (newStatus === 'DISPONIVEL') {
-      const pub = updated.find(u => u.id === unit.id);
-      if (pub) {
-        fetch('/api/properties', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(unitToPropertyDTO(pub))
-        }).catch(() => {});
-      }
+    const pub = updated.find(u => u.id === unit.id);
+    if (pub) {
+      fetch('/api/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(unitToPropertyDTO(pub))
+      }).catch(() => {});
     }
 
     logAuditEvent(
@@ -264,6 +262,7 @@ export default function PainelImoveisPage() {
     const updated = units.filter(u => u.id !== id);
     setUnits(updated);
     saveStoredData('units', updated);
+    fetch(`/api/properties?id=${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => {});
 
     logAuditEvent(
       'IMOVEL_EXCLUIDO',

@@ -756,7 +756,7 @@ export default function ContratosAdminPage() {
               </div>
               <div className="flex items-center gap-2 text-emerald-700 font-bold">
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Unidade alterada para 'LOCADO'</span>
+                <span>Unidade alterada para &apos;LOCADO&apos;</span>
               </div>
             </div>
 
