@@ -1,7 +1,9 @@
-import { Controller, Get, Param, Req } from '@nestjs/common';
+import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { FinanceService } from './finance.service';
 
 @Controller('finance')
+@UseGuards(AuthGuard('jwt'))
 export class FinanceController {
   constructor(private readonly financeService: FinanceService) {}
 
@@ -11,7 +13,8 @@ export class FinanceController {
   }
 
   @Get('invoices/:contractId')
-  getInvoices(@Param('contractId') contractId: string) {
-    return this.financeService.getTenantInvoices(contractId);
+  getInvoices(@Req() req: any, @Param('contractId') contractId: string) {
+    return this.financeService.getTenantInvoices(contractId, req.user);
   }
 }
+

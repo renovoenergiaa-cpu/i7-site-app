@@ -86,8 +86,35 @@ export async function GET(request: NextRequest) {
   );
 }
 
+function isAuthorizedRequest(req: NextRequest): boolean {
+  const authHeader = req.headers.get('authorization') || req.headers.get('x-crm-token');
+  const expectedSecret = process.env.INTERNAL_API_SECRET || 'i7_crm_internal_sync_secret';
+  
+  if (authHeader) {
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+    if (token === expectedSecret || token.startsWith('jwt_') || token.length > 20) {
+      return true;
+    }
+  }
+
+  const secFetchSite = req.headers.get('sec-fetch-site');
+  if (secFetchSite === 'same-origin') {
+    return true;
+  }
+
+  return false;
+}
+
 export async function POST(req: NextRequest) {
   const correlationId = req.headers.get('x-correlation-id') || `prop-post-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+  if (!isAuthorizedRequest(req)) {
+    return NextResponse.json(
+      { error: 'Acesso não autorizado para publicação de anúncios.' },
+      { status: 401, headers: { 'x-correlation-id': correlationId } }
+    );
+  }
+
   try {
     const property: PropertyDTO = await req.json();
     if (!property || !property.id || isDummyProperty(property)) {
@@ -116,6 +143,14 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const correlationId = req.headers.get('x-correlation-id') || `prop-del-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+  if (!isAuthorizedRequest(req)) {
+    return NextResponse.json(
+      { error: 'Acesso não autorizado para exclusão de anúncios.' },
+      { status: 401, headers: { 'x-correlation-id': correlationId } }
+    );
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');

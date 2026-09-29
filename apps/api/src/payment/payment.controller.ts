@@ -18,7 +18,11 @@ export class PaymentController {
 
   @Post(':id/pay')
   @ApiOperation({ summary: 'Realizar pagamento de fatura (PIX/Boleto/Cartão)' })
-  payInvoice(@Param('id') id: string, @Body() body: { method: 'PIX' | 'BOLETO' | 'CREDIT_CARD' }) {
-    return this.paymentService.payInvoice(id, body.method || 'PIX');
+  payInvoice(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() body: { method: 'PIX' | 'BOLETO' | 'CREDIT_CARD' }
+  ) {
+    return this.paymentService.payInvoice(id, req.user, body.method || 'PIX');
   }
 }

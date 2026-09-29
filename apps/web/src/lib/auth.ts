@@ -10,12 +10,14 @@ const REGISTERED_LOCAL_USERS_KEY = 'i7_auth_local_users';
 // 1. CREDENCIAIS OFICIAIS FIXAS (ADMIN, PROPRIETÁRIO, INQUILINO)
 // ============================================================================
 
-// Administrador Master (Acesso direto sem verificação de e-mail)
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Administrador Master de Demonstração (Ativo estritamente em ambiente de desenvolvimento local)
 export const FIXED_ADMIN = {
-  email: 'admin@i7.com.br',
-  altEmail: 'admin@i7imob.com.br',
-  password: 'Admin@i7#2026',
-  altPassword: 'admin123',
+  email: isProduction ? '' : 'admin@i7.com.br',
+  altEmail: isProduction ? '' : 'admin@i7imob.com.br',
+  password: isProduction ? '' : 'Admin@i7#2026',
+  altPassword: isProduction ? '' : 'admin123',
   user: {
     id: 'c6edc59a-28cd-44a6-b6cb-6b3656d9ab93',
     name: 'Administrador Geral i7',
@@ -64,8 +66,19 @@ export function setCurrentSession(session: UserSession | null) {
   if (typeof window === 'undefined') return;
   if (!session) {
     localStorage.removeItem(AUTH_STORAGE_KEY);
+    document.cookie = 'i7_auth_session=; path=/; max-age=0; SameSite=Lax';
   } else {
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+    const cookiePayload = encodeURIComponent(
+      JSON.stringify({
+        id: session.user.id,
+        role: session.user.role,
+        email: session.user.email,
+        exp: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      })
+    );
+    const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `i7_auth_session=${cookiePayload}; path=/; max-age=604800; SameSite=Lax${secureFlag}`;
   }
 }
 
@@ -124,8 +137,8 @@ export async function loginUser(emailInput: string, passwordInput: string): Prom
     throw new Error('Informe o e-mail e a senha.');
   }
 
-  // 1. Verificação do Administrador Geral (Sem exigência de verificação de e-mail)
-  if (email === FIXED_ADMIN.email.toLowerCase() || email === FIXED_ADMIN.altEmail.toLowerCase()) {
+  // 1. Verificação do Administrador Geral de Demonstração (Desativado estritamente em Produção)
+  if (!isProduction && FIXED_ADMIN.email && (email === FIXED_ADMIN.email.toLowerCase() || email === FIXED_ADMIN.altEmail.toLowerCase())) {
     if (password === FIXED_ADMIN.password || password === FIXED_ADMIN.altPassword) {
       const session: UserSession = {
         user: {

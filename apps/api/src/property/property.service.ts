@@ -66,7 +66,7 @@ export class PropertyService {
         where,
         include: {
           media: { orderBy: { order: 'asc' } },
-          owner: { select: { id: true, name: true, email: true, phone: true } },
+          owner: { select: { id: true, name: true } },
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -86,7 +86,7 @@ export class PropertyService {
       where: { id },
       include: {
         media: { orderBy: { order: 'asc' } },
-        owner: { select: { id: true, name: true, email: true, phone: true, avatarUrl: true } },
+        owner: { select: { id: true, name: true, avatarUrl: true } },
       },
     });
 

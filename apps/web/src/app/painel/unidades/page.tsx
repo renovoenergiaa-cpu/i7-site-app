@@ -253,7 +253,10 @@ export default function UnidadesPage() {
     const updated = units.filter(u => u.id !== unit.id);
     setUnits(updated);
     saveStoredData('units', updated);
-    fetch(`/api/properties?id=${encodeURIComponent(unit.id)}`, { method: 'DELETE' }).catch(() => {});
+    fetch(`/api/properties?id=${encodeURIComponent(unit.id)}`, { 
+      method: 'DELETE',
+      headers: { 'x-crm-token': 'i7_crm_internal_sync_secret' }
+    }).catch(() => {});
 
     logAuditEvent(
       'ANUNCIO_EXCLUIDO',

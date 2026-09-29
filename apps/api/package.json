@@ -8,7 +8,8 @@
     "start": "nest start",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "ts-node prisma/seed.ts",
+    "admin:create": "ts-node scripts/create-master-admin.ts"
   },
   "dependencies": {
     "@i7/types": "*",

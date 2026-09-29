@@ -29,6 +29,9 @@ export class AuthService {
         where: { email },
       });
     } catch (error) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new BadRequestException('Falha ao processar cadastro. Tente novamente mais tarde.');
+      }
       console.warn('⚠️ Banco de dados offline, simulando cadastro...');
       const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
       console.log(`\n==============================================`);
@@ -114,6 +117,9 @@ export class AuthService {
         where: { email },
       });
     } catch (error) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new BadRequestException('Falha ao validar código. Tente novamente.');
+      }
       console.warn('⚠️ Banco de dados offline, simulando verificação...');
       return {
         user: {
@@ -168,9 +174,12 @@ export class AuthService {
         where: { email },
       });
     } catch (error) {
-      console.warn('⚠️ Banco de dados offline, simulando login com conta de teste...');
+      if (process.env.NODE_ENV === 'production') {
+        throw new UnauthorizedException('Serviço de autenticação temporariamente indisponível.');
+      }
+      console.warn('⚠️ Banco de dados offline, simulando login com conta de teste não-privilegiada...');
       
-      const role = email.includes('admin') ? 'ADMIN' : email.includes('proprietario') ? 'OWNER' : 'TENANT';
+      const role = 'TENANT';
       const token = this.generateToken('mock-id', email, role);
       
       return {

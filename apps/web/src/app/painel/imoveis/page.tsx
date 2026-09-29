@@ -236,7 +236,10 @@ export default function PainelImoveisPage() {
     if (pub) {
       fetch('/api/properties', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-crm-token': 'i7_crm_internal_sync_secret'
+        },
         body: JSON.stringify(unitToPropertyDTO(pub))
       }).catch(() => {});
     }
@@ -262,7 +265,10 @@ export default function PainelImoveisPage() {
     const updated = units.filter(u => u.id !== id);
     setUnits(updated);
     saveStoredData('units', updated);
-    fetch(`/api/properties?id=${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => {});
+    fetch(`/api/properties?id=${encodeURIComponent(id)}`, { 
+      method: 'DELETE',
+      headers: { 'x-crm-token': 'i7_crm_internal_sync_secret' }
+    }).catch(() => {});
 
     logAuditEvent(
       'IMOVEL_EXCLUIDO',

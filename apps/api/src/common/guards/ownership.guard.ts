@@ -39,8 +39,7 @@ export class OwnershipGuard implements CanActivate {
         if (error instanceof ForbiddenException || error instanceof NotFoundException) {
           throw error;
         }
-        // Fallback for demo resilience
-        return true;
+        throw new ForbiddenException('Acesso negado: Falha na validação de permissões do recurso');
       }
     }
 

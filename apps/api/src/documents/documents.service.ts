@@ -28,7 +28,11 @@ export class DocumentsService {
       throw new InternalServerErrorException('Supabase credentials not configured.');
     }
 
-    const uniqueFilename = `${Date.now()}-${file.originalname}`;
+    // Path Traversal Prevention: Sanitize filename and remove directory navigation characters
+    const sanitizedFilename = (file.originalname || 'document')
+      .replace(/^.*[\\\/]/, '')
+      .replace(/[^a-zA-Z0-9._-]/g, '_');
+    const uniqueFilename = `${Date.now()}-${sanitizedFilename}`;
     const filePath = `documents/${userId}/${uniqueFilename}`;
 
     const { data: uploadData, error } = await this.supabase.storage
@@ -41,28 +45,28 @@ export class DocumentsService {
       throw new InternalServerErrorException(`Failed to upload to Supabase: ${error.message}`);
     }
 
-    const { data: publicUrlData } = this.supabase.storage
+    // Attempt signed URL first (expires in 2 hours for authorized access); fallback to getPublicUrl
+    let fileUrl = '';
+    const { data: signedData } = await this.supabase.storage
       .from('i7-documents')
-      .getPublicUrl(filePath);
+      .createSignedUrl(filePath, 7200);
 
-    let validUserId = userId;
-    if (userId === 'admin-test-id') {
-      let firstUser = await this.prisma.user.findFirst();
-      if (!firstUser) {
-        firstUser = await this.prisma.user.create({
-          data: { name: 'Admin Teste', email: 'admin.test@i7.com', passwordHash: '123', role: 'ADMIN' }
-        });
-      }
-      validUserId = firstUser.id;
+    if (signedData?.signedUrl) {
+      fileUrl = signedData.signedUrl;
+    } else {
+      const { data: publicUrlData } = this.supabase.storage
+        .from('i7-documents')
+        .getPublicUrl(filePath);
+      fileUrl = publicUrlData?.publicUrl || filePath;
     }
 
     return this.prisma.document.create({
       data: {
         title: data.title,
-        url: publicUrlData.publicUrl,
+        url: fileUrl,
         type: data.type,
-        uploadedBy: validUserId,
-        userId: validUserId,
+        uploadedBy: userId,
+        userId: userId,
         propertyId: data.propertyId,
         contractId: data.contractId,
       },

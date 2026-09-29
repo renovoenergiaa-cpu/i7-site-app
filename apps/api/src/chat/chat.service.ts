@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -53,9 +53,15 @@ export class ChatService {
   async sendMessage(userId: string, conversationId: string, text: string) {
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
+      include: { users: true },
     });
 
     if (!conversation) throw new NotFoundException('Conversa não encontrada');
+
+    const isParticipant = conversation.users.some((u) => u.userId === userId);
+    if (!isParticipant) {
+      throw new ForbiddenException('Acesso negado: Você não participa desta conversa.');
+    }
 
     return this.prisma.message.create({
       data: {
