@@ -16,8 +16,8 @@ const isProduction = process.env.NODE_ENV === 'production';
 export const FIXED_ADMIN = {
   email: isProduction ? '' : 'admin@i7.com.br',
   altEmail: isProduction ? '' : 'admin@i7imob.com.br',
-  password: isProduction ? '' : 'Admin@i7#2026',
-  altPassword: isProduction ? '' : 'admin123',
+  password: isProduction ? '' : '2026Ju@nTh@deu',
+  altPassword: isProduction ? '' : 'Admin@i7#2026',
   user: {
     id: 'c6edc59a-28cd-44a6-b6cb-6b3656d9ab93',
     name: 'Administrador Geral i7',
@@ -137,7 +137,51 @@ export async function loginUser(emailInput: string, passwordInput: string): Prom
     throw new Error('Informe o e-mail e a senha.');
   }
 
-  // 1. Verificação do Administrador Geral de Demonstração (Desativado estritamente em Produção)
+  // 1. Tenta autenticação oficial no Servidor/Banco de Dados via /api/auth/login
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data?.session) {
+      setCurrentSession(data.session);
+      logAuditEvent(
+        data.session.user.role === 'ADMIN' ? 'LOGIN_ADMIN' : 'LOGIN_USUARIO',
+        'Autenticação Oficial',
+        `Acesso autorizado para: ${data.session.user.name}`,
+        data.session.user.email
+      );
+      return data.session;
+    }
+
+    if (res.status === 401) {
+      throw new Error(data.error || 'Senha incorreta. Verifique e tente novamente.');
+    }
+
+    if (res.status === 403 && (data.error === 'EMAIL_NOT_VERIFIED' || data.code === 'EMAIL_NOT_VERIFIED')) {
+      throw new Error(`EMAIL_NOT_VERIFIED:${data.email || email}`);
+    }
+
+    // Se retornou outro erro que não seja 404 (não cadastrado), propaga
+    if (res.status !== 404 && data.error) {
+      throw new Error(data.error);
+    }
+  } catch (apiErr: any) {
+    if (
+      apiErr.message &&
+      (apiErr.message.includes('Senha incorreta') || apiErr.message.startsWith('EMAIL_NOT_VERIFIED:'))
+    ) {
+      throw apiErr;
+    }
+    // Caso o fetch falhe por estar offline ou erro de rede, segue para o fallback local
+    console.warn('[loginUser] Verificando contingência local...', apiErr.message);
+  }
+
+  // 2. Verificação do Administrador Geral de Demonstração (Fallback para Ambiente Local)
   if (!isProduction && FIXED_ADMIN.email && (email === FIXED_ADMIN.email.toLowerCase() || email === FIXED_ADMIN.altEmail.toLowerCase())) {
     if (password === FIXED_ADMIN.password || password === FIXED_ADMIN.altPassword) {
       const session: UserSession = {
@@ -160,7 +204,7 @@ export async function loginUser(emailInput: string, passwordInput: string): Prom
     }
   }
 
-  // 2. Verificação de Usuários Cadastrados
+  // 3. Verificação de Usuários Cadastrados Localmente (Fallback de Contingência)
   const localUsers = getLocalAuthUsers();
   const foundUser = localUsers.find(u => u.email.toLowerCase() === email);
 
