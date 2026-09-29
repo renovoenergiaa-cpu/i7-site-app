@@ -908,7 +908,7 @@ export default function PainelImoveisPage() {
 
       {/* MODAL DE CADASTRO E EDIÇÃO COMPLETO */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl border border-border shadow-2xl max-w-3xl w-full my-8 overflow-hidden animate-scale-in">
             {/* Header do Modal */}
             <div className="p-6 border-b border-border flex items-center justify-between bg-surface-hover">

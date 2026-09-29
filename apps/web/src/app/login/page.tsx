@@ -15,7 +15,9 @@ import {
   CheckCircle2, 
   ShieldAlert,
   RefreshCw,
-  ArrowLeft
+  ArrowLeft,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { 
   loginUser, 
@@ -41,6 +43,7 @@ function LoginFormContent() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [code, setCode] = useState('');
 
   // UI States
@@ -402,17 +405,37 @@ function LoginFormContent() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-text-secondary uppercase">Senha de Acesso *</label>
-                <div className="flex items-center gap-2 bg-surface border border-border rounded-xl px-3 py-2.5 focus-within:border-brand-lime">
-                  <Lock className="w-4 h-4 text-text-secondary" />
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-text-secondary uppercase">Senha de Acesso *</label>
+                  {mode === 'login' && (
+                    <a 
+                      href="https://wa.me/5515988145050?text=Ol%C3%A1!%20Esqueci%20minha%20senha%20de%20acesso%20ao%20portal%20i7%20e%20preciso%20de%20suporte."
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] font-bold text-brand-lime hover:underline cursor-pointer"
+                    >
+                      Esqueceu a senha?
+                    </a>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 bg-surface border border-border rounded-xl px-3 py-2.5 focus-within:border-brand-lime transition-colors">
+                  <Lock className="w-4 h-4 text-text-secondary shrink-0" />
                   <input 
-                    type="password" 
+                    type={showPassword ? 'text' : 'password'} 
                     placeholder="Mínimo 6 caracteres"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full bg-transparent text-xs text-text-primary focus:outline-none font-medium"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-text-muted hover:text-text-primary transition-colors p-0.5 focus:outline-none"
+                    aria-label={showPassword ? 'Ocultar senha' : 'Exibir senha'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
             </>

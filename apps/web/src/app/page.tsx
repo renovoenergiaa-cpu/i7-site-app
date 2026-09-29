@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Search, MapPin, Building, ShieldCheck, Sparkles, KeyRound, ArrowRight, Heart, Calendar } from 'lucide-react';
 import { fetchProperties } from '@/lib/api';
 import { PropertyDTO } from '@i7/types';
@@ -10,7 +11,7 @@ import { useFavorites } from '@/lib/useFavorites';
 
 export default function HomePage() {
   const [properties, setProperties] = useState<PropertyDTO[]>([]);
-  const [searchCity, setSearchCity] = useState('São Paulo');
+  const [searchCity, setSearchCity] = useState('Sorocaba');
   const [searchNeighborhood, setSearchNeighborhood] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [searchMode, setSearchMode] = useState<'buy' | 'rent' | 'sell'>('rent');
@@ -28,10 +29,13 @@ export default function HomePage() {
         
         {/* Hero Background Image */}
         <div className="absolute top-0 left-0 w-full h-full z-0">
-          <img 
+          <Image 
             src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&q=80" 
             alt="Interior de imóvel moderno" 
-            className="w-full h-full object-cover"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
           />
           <div className="absolute top-0 left-0 w-full h-full bg-black/40" /> {/* Dark overlay for text readability */}
         </div>

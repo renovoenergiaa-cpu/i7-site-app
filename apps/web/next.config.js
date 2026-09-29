@@ -5,7 +5,8 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
-      { protocol: 'https', hostname: 'my.matterport.com' }
+      { protocol: 'https', hostname: 'my.matterport.com' },
+      { protocol: 'https', hostname: 'efheaozjwxmpnivbmfod.supabase.co' }
     ]
   },
   async headers() {

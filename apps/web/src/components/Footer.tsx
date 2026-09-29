@@ -1,9 +1,17 @@
+'use client';
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { ShieldCheck, Lock, Sparkles, CheckCircle2 } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
 export const Footer: React.FC = () => {
+  const pathname = usePathname();
+
+  if (pathname?.startsWith('/painel')) {
+    return null;
+  }
+
   return (
     <footer className="bg-surface/90 border-t border-border mt-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">

@@ -2,16 +2,22 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Search, Heart, MessageSquare, UserCircle, Building2, Menu, X, LogOut, ShieldCheck, Mail } from 'lucide-react';
 import { getCurrentSession, logoutUser, UserSession } from '@/lib/auth';
 
 export const Navbar: React.FC = () => {
+  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [session, setSession] = useState<UserSession | null>(null);
 
   useEffect(() => {
     setSession(getCurrentSession());
   }, []);
+
+  if (pathname?.startsWith('/painel')) {
+    return null;
+  }
 
   const handleLogout = () => {
     logoutUser();

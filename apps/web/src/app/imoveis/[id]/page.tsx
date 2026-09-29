@@ -417,19 +417,28 @@ export default function PropertyDetailPage() {
 
       {/* SCHEDULE VISIT MODAL */}
       {visitModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
-          <div className="w-full max-w-md p-6 rounded-2xl glass-panel border border-brand-lime/40 space-y-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md p-6 sm:p-8 rounded-3xl bg-white border border-border shadow-2xl space-y-6 relative">
             <div className="flex items-center justify-between border-b border-border pb-4">
-              <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-brand-lime" /> Agendar Visita i7
+              <h3 className="text-lg font-black text-text-primary flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-brand-lime/10 flex items-center justify-center text-brand-lime">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <span>Agendar Visita i7</span>
               </h3>
-              <button onClick={() => setVisitModalOpen(false)} className="text-text-muted hover:text-text-primary"><X className="w-5 h-5" /></button>
+              <button 
+                onClick={() => setVisitModalOpen(false)} 
+                className="p-2 rounded-full hover:bg-surface text-text-muted hover:text-text-primary transition-colors"
+                aria-label="Fechar"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <form onSubmit={handleScheduleVisit} className="space-y-4">
               <div className="p-3 rounded-xl bg-brand-lime/10 border border-brand-lime/30 text-xs text-brand-lime font-bold flex items-center gap-2">
                 <MapPin className="w-4 h-4 shrink-0" />
-                <span>Visita Presencial Oficial (Acompanhada por Especialista Credenciado)</span>
+                <span>Visita Presencial Oficial com Corretor Especialista i7</span>
               </div>
 
               <div className="space-y-1.5">
@@ -439,7 +448,7 @@ export default function PropertyDetailPage() {
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
                   placeholder="Digite seu nome completo"
-                  className="w-full bg-surface-card border border-border rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-lime"
+                  className="w-full bg-surface border border-border rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-lime focus:bg-white transition-all"
                   required
                 />
               </div>
@@ -451,7 +460,7 @@ export default function PropertyDetailPage() {
                   value={clientPhone}
                   onChange={(e) => setClientPhone(e.target.value)}
                   placeholder="Ex: (15) 99123-4567"
-                  className="w-full bg-surface-card border border-border rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-lime"
+                  className="w-full bg-surface border border-border rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-lime focus:bg-white transition-all"
                   required
                 />
               </div>
@@ -462,7 +471,7 @@ export default function PropertyDetailPage() {
                   type="datetime-local" 
                   value={visitDate}
                   onChange={(e) => setVisitDate(e.target.value)}
-                  className="w-full bg-surface-card border border-border rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-lime"
+                  className="w-full bg-surface border border-border rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-lime focus:bg-white transition-all font-medium"
                   required
                 />
               </div>
@@ -473,12 +482,15 @@ export default function PropertyDetailPage() {
                   value={clientNotes}
                   onChange={(e) => setClientNotes(e.target.value)}
                   placeholder="Ex: Gostaria de visitar no período da tarde..."
-                  className="w-full bg-surface-card border border-border rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-lime"
+                  className="w-full bg-surface border border-border rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-lime focus:bg-white transition-all"
                   rows={2}
                 />
               </div>
 
-              <button type="submit" className="w-full py-3 rounded-xl font-bold bg-brand-lime text-background hover:bg-brand-lime-hover shadow-glow-lime flex items-center justify-center gap-2">
+              <button 
+                type="submit" 
+                className="w-full py-3.5 rounded-xl font-bold bg-brand-lime text-background hover:bg-brand-lime-hover shadow-glow-lime flex items-center justify-center gap-2 transition-all transform active:scale-95"
+              >
                 Confirmar Solicitação de Visita
               </button>
             </form>
@@ -488,23 +500,32 @@ export default function PropertyDetailPage() {
 
       {/* PROPOSAL MODAL */}
       {proposalModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
-          <div className="w-full max-w-md p-6 rounded-2xl glass-panel border border-brand-lime/40 space-y-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md p-6 sm:p-8 rounded-3xl bg-white border border-border shadow-2xl space-y-6 relative">
             <div className="flex items-center justify-between border-b border-border pb-4">
-              <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                <Send className="w-5 h-5 text-brand-lime" /> Enviar Proposta de Aluguel
+              <h3 className="text-lg font-black text-text-primary flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-brand-lime/10 flex items-center justify-center text-brand-lime">
+                  <Send className="w-5 h-5" />
+                </div>
+                <span>Enviar Proposta de Aluguel</span>
               </h3>
-              <button onClick={() => setProposalModalOpen(false)} className="text-text-muted hover:text-text-primary"><X className="w-5 h-5" /></button>
+              <button 
+                onClick={() => setProposalModalOpen(false)} 
+                className="p-2 rounded-full hover:bg-surface text-text-muted hover:text-text-primary transition-colors"
+                aria-label="Fechar"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <form onSubmit={handleSendProposal} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-text-secondary uppercase">Valor Ofertado (R$/mês)</label>
+                <label className="text-xs font-bold text-text-secondary uppercase">Valor Ofertado (R$/mês) *</label>
                 <input 
                   type="number" 
                   value={proposalAmount}
                   onChange={(e) => setProposalAmount(Number(e.target.value))}
-                  className="w-full bg-surface-card border border-border rounded-xl p-3 text-sm text-text-primary font-bold focus:outline-none focus:border-brand-lime"
+                  className="w-full bg-surface border border-border rounded-xl p-3 text-base text-text-primary font-black focus:outline-none focus:border-brand-lime focus:bg-white transition-all"
                   required
                 />
               </div>
@@ -514,11 +535,14 @@ export default function PropertyDetailPage() {
                 <textarea 
                   rows={3}
                   placeholder="Ex: Gostaria de iniciar o contrato dia 15..."
-                  className="w-full bg-surface-card border border-border rounded-xl p-3 text-sm text-text-primary focus:outline-none"
+                  className="w-full bg-surface border border-border rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-lime focus:bg-white transition-all"
                 />
               </div>
 
-              <button type="submit" className="w-full py-3 rounded-xl font-bold bg-brand-lime text-white hover:bg-brand-lime-hover shadow-glow-blue">
+              <button 
+                type="submit" 
+                className="w-full py-3.5 rounded-xl font-bold bg-brand-lime text-background hover:bg-brand-lime-hover shadow-glow-lime transition-all transform active:scale-95"
+              >
                 Enviar Proposta Oficial
               </button>
             </form>

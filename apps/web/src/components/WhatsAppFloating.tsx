@@ -1,9 +1,16 @@
 'use client';
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
 export function WhatsAppFloating() {
+  const pathname = usePathname();
+
+  if (pathname?.startsWith('/painel')) {
+    return null;
+  }
+
   return (
     <a
       href="https://wa.me/5515988145050?text=Ol%C3%A1!%20Gostaria%20de%20tirar%20d%C3%BAvidas%20sobre%20um%20im%C3%B3vel."
