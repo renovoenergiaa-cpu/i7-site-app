@@ -471,7 +471,7 @@ export function getStoredData<T>(key: string, initialData: T): T {
     let parsed = JSON.parse(item);
     if (Array.isArray(parsed)) {
       // Limpa qualquer dado residual do exemplo antigo 'b3106524-17ad-4a9b-a6fa-e9fa93637c31' (Mangal Gourmet / Apto 31)
-      const cleaned = parsed.filter((u: any) => {
+      let cleaned = parsed.filter((u: any) => {
         if (!u) return false;
         const id = String(u.id || '').toLowerCase();
         const title = String(u.title || '').toLowerCase();
@@ -482,6 +482,18 @@ export function getStoredData<T>(key: string, initialData: T): T {
         if (title.includes('residencial mangal') || bName.includes('residencial mangal')) return false;
         return true;
       });
+
+      // Limpa usuários de teste/fictícios caso key === 'users'
+      if (key === 'users') {
+        cleaned = cleaned.filter((u: any) => {
+          if (!u) return false;
+          const email = String(u.email || '').toLowerCase().trim();
+          const name = String(u.name || '').toLowerCase().trim();
+          if (email === 'proprietario@i7.com.br' || email === 'locatario@i7.com.br' || email === 'admin-impar@i7.com.br') return false;
+          if (name.includes('carlos alberto') || name.includes('mariana costa')) return false;
+          return true;
+        });
+      }
       if (key === 'units' && Array.isArray(initialData)) {
         const idSet = new Set(cleaned.map((u: any) => u.id));
         (initialData as any[]).forEach(initUnit => {

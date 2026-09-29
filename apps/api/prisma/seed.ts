@@ -22,43 +22,21 @@ async function main() {
 
   const passwordHash = await bcrypt.hash('i7@123456', 10);
 
-  // Users
-  const owner = await prisma.user.create({
-    data: {
-      name: 'Carlos Alberto Silva',
-      email: 'proprietario@i7.com.br',
-      phone: '(15) 98888-7777',
-      passwordHash,
-      role: 'OWNER',
-      verified: true,
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-    },
-  });
-
-  const tenant = await prisma.user.create({
-    data: {
-      name: 'Mariana Costa Tech',
-      email: 'locatario@i7.com.br',
-      phone: '(15) 97777-6666',
-      passwordHash,
-      role: 'TENANT',
-      verified: true,
-      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-    },
-  });
-
+  // Admin Mestre Oficial
   const admin = await prisma.user.create({
     data: {
-      name: 'Administrador i7',
+      name: 'Administrador Master i7',
       email: 'admin@i7.com.br',
-      phone: '(15) 99999-0000',
+      phone: '(15) 3090-4000',
       passwordHash,
       role: 'ADMIN',
       verified: true,
     },
   });
 
-  console.log('✅ Usuários criados com sucesso.');
+  const owner = admin;
+
+  console.log('✅ Usuário Administrador Oficial configurado com sucesso.');
 
   // Properties in Sorocaba
   const prop1 = await prisma.property.create({

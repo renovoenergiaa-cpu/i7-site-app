@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, Search, Filter, UserPlus, Shield, Mail, Phone, CheckCircle2, AlertCircle, X, Send } from 'lucide-react';
+import { Users, Search, Filter, UserPlus, Shield, Mail, Phone, CheckCircle2, AlertCircle, X, Send, RefreshCw, Trash2 } from 'lucide-react';
 import { GestaoUser, INITIAL_USERS, getStoredData, saveStoredData } from '@/lib/gestaoData';
 
 export default function UsersAdminPage() {
@@ -9,6 +9,7 @@ export default function UsersAdminPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   // Form states
   const [newName, setNewName] = useState('');
@@ -16,9 +17,46 @@ export default function UsersAdminPage() {
   const [newPhone, setNewPhone] = useState('');
   const [newRole, setNewRole] = useState<'OWNER' | 'TENANT' | 'ADMIN'>('TENANT');
 
+  const syncUsersWithDatabase = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch('/api/users');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setUsers(data);
+          saveStoredData('users', data);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Falha ao sincronizar usuários:', e);
+    } finally {
+      setSyncing(false);
+    }
+    const local = getStoredData('users', INITIAL_USERS);
+    setUsers(local);
+  };
+
   useEffect(() => {
-    setUsers(getStoredData('users', INITIAL_USERS));
+    // 1. Carrega dados higienizados imediatos
+    const local = getStoredData('users', INITIAL_USERS);
+    setUsers(local);
+    // 2. Sincroniza com a base de dados PostgreSQL
+    syncUsersWithDatabase();
   }, []);
+
+  const handleDeleteUser = async (id: string, name: string) => {
+    if (!confirm(`Tem certeza que deseja excluir o usuário "${name}" permanentemente?`)) return;
+
+    const updated = users.filter(u => u.id !== id);
+    setUsers(updated);
+    saveStoredData('users', updated);
+
+    try {
+      await fetch(`/api/users?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    } catch {}
+  };
 
   const handleInviteUser = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,12 +120,24 @@ export default function UsersAdminPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2.5 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow-md flex items-center gap-2 transition-all self-start md:self-auto"
-        >
-          <UserPlus className="w-4 h-4" /> Convidar Novo Usuário
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={syncUsersWithDatabase}
+            disabled={syncing}
+            className="px-3 py-2.5 rounded-xl border border-border bg-surface text-text-primary text-xs font-bold hover:bg-slate-100 flex items-center gap-2 transition-all self-start md:self-auto"
+            title="Sincronizar com Banco de Dados"
+          >
+            <RefreshCw className={`w-4 h-4 text-text-secondary ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Sincronizando...' : 'Sincronizar Banco'}
+          </button>
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2.5 rounded-xl bg-brand-lime text-white text-xs font-black hover:bg-brand-lime-hover shadow-md flex items-center gap-2 transition-all self-start md:self-auto"
+          >
+            <UserPlus className="w-4 h-4" /> Convidar Novo Usuário
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -188,18 +238,28 @@ export default function UsersAdminPage() {
                 <td className="p-4 text-text-secondary">
                   {user.createdAt}
                 </td>
-                <td className="p-4 text-right space-x-1">
+                <td className="p-4 text-right space-x-1.5">
                   {user.role !== 'ADMIN' && (
-                    <button
-                      onClick={() => handleToggleStatus(user.id)}
-                      className={`px-2.5 py-1 rounded-lg font-bold text-[11px] ${
-                        user.status === 'BLOQUEADO' 
-                          ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' 
-                          : 'bg-red-50 text-red-600 hover:bg-red-100'
-                      }`}
-                    >
-                      {user.status === 'BLOQUEADO' ? 'Desbloquear' : 'Bloquear'}
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleToggleStatus(user.id)}
+                        className={`px-2.5 py-1 rounded-lg font-bold text-[11px] ${
+                          user.status === 'BLOQUEADO' 
+                            ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' 
+                            : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                        }`}
+                      >
+                        {user.status === 'BLOQUEADO' ? 'Desbloquear' : 'Bloquear'}
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteUser(user.id, user.name)}
+                        className="px-2.5 py-1 rounded-lg bg-red-50 text-red-600 font-bold hover:bg-red-100 text-[11px] inline-flex items-center gap-1"
+                        title="Excluir usuário permanentemente"
+                      >
+                        <Trash2 className="w-3 h-3" /> Excluir
+                      </button>
+                    </>
                   )}
                   {user.status === 'CONVIDADO' && (
                     <button
